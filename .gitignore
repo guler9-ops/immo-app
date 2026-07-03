@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build output
+client/dist/
+
+# Datenbank (wird auf Railway via Volume gespeichert)
+server/immo.db
+server/immo.db-shm
+server/immo.db-wal
+
+# Uploads
+server/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local

@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ImmoApp – Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{background:#f1f5f9;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.app{display:flex;flex:1;overflow:hidden}
+.sidebar{width:200px;background:#0f172a;display:flex;flex-direction:column;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid #1e293b;color:#fff;font-weight:700;font-size:16px}
+nav{flex:1;padding:8px;overflow-y:auto}
+.nb{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;border-radius:8px;text-align:left;margin-bottom:2px;transition:all .15s}
+.nb:hover{background:#1e293b;color:#fff}
+.nb.on{background:#2563eb;color:#fff}
+.nb .ico{font-size:16px;flex-shrink:0}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:#f8fafc}
+.banner{background:#fef3c7;border-bottom:1px solid #fcd34d;padding:7px 20px;font-size:12px;color:#92400e;flex-shrink:0}
+.page{display:none;padding:24px;max-width:960px}
+.page.on{display:block}
+h1{font-size:20px;font-weight:600;color:#0f172a}
+.sub{color:#64748b;font-size:12px;margin-top:3px;margin-bottom:18px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.kv{font-size:20px;font-weight:700;color:#0f172a}
+.kl{font-size:11px;color:#64748b;margin-top:1px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card h2{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid #f1f5f9;background:#f8fafc}
+td{padding:9px 10px;border-bottom:1px solid #f1f5f9;color:#0f172a;vertical-align:middle}
+tr:last-child td{border:none}
+tr:hover td{background:#f8fafc}
+.bdg{display:inline-flex;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.g{background:#dcfce7;color:#15803d}
+.b{background:#dbeafe;color:#1d4ed8}
+.y{background:#fef9c3;color:#854d0e}
+.gr{background:#f1f5f9;color:#64748b}
+.btn-p{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-p:hover{background:#1d4ed8}
+.btn-s{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:8px;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-s:hover{background:#f9fafb}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.charts{display:flex;gap:6px;align-items:flex-end;height:120px;padding:4px 0 0}
+.bar-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.bar{background:#3b82f6;border-radius:4px 4px 0 0;width:100%;min-height:4px;transition:all .3s}
+.bar-lbl{font-size:10px;color:#64748b}
+.bar-val{font-size:10px;color:#3b82f6;font-weight:600}
+.pay-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.pay-row:last-child{border:none}
+.pay-name{font-size:13px;font-weight:500}
+.pay-meta{font-size:11px;color:#64748b}
+.pay-amt{font-size:14px;font-weight:700;color:#16a34a}
+.prop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.prop-c{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.prop-c h3{font-size:14px;font-weight:600;color:#0f172a}
+.prop-c p{font-size:12px;color:#64748b;margin-top:3px}
+.prow{display:flex;justify-content:space-between;align-items:start;margin-bottom:6px}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.qi{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid #e2e8f0;border-radius:10px;cursor:pointer;font-size:11px;color:#64748b;background:#fff;transition:all .15s}
+.qi:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+.msg-grid{display:grid;grid-template-columns:240px 1fr;gap:14px}
+.msg-list{display:flex;flex-direction:column;gap:8px}
+.msg-item{padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all .15s}
+.msg-item:hover,.msg-item.sel{border-color:#93c5fd;background:#eff6ff}
+.mt{font-size:13px;font-weight:500;color:#0f172a}
+.mm{font-size:11px;color:#64748b;margin-top:3px}
+.msg-body{background:#f8fafc;border-radius:8px;padding:14px;font-size:13px;white-space:pre-wrap;line-height:1.7;color:#374151}
+.dok-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dok-c{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.dok-top{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.dok-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dok-meta{font-size:11px;color:#64748b;margin-top:2px}
+.upload-zone{border:2px dashed #cbd5e1;border-radius:10px;padding:24px;text-align:center;margin-bottom:14px;cursor:pointer;color:#64748b;transition:all .15s}
+.upload-zone:hover{border-color:#3b82f6;background:#eff6ff}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.pill{padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid #e2e8f0;color:#64748b;background:#f8fafc;transition:all .15s}
+.pill.on{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tab{padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#64748b;transition:all .15s}
+.tab.on{background:#2563eb;color:#fff;border-color:#2563eb}
+.info-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px}
+.info-box .title{font-size:13px;font-weight:600;color:#1e40af;margin-bottom:5px}
+.info-box .desc{font-size:12px;color:#1e40af;line-height:1.6}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.stat-v{font-size:22px;font-weight:700}
+.stat-l{font-size:11px;color:#64748b;margin-top:3px}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:.6;transition:opacity .15s}
+.icon-btn:hover{opacity:1}
+.zaeh-typen{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.zt{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+/* ── Modal ── */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center}
+.mo-box{background:#fff;border-radius:14px;width:580px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.mo-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #e2e8f0;flex-shrink:0}
+.mo-head h2{font-size:16px;font-weight:600;color:#0f172a}
+.mo-body{padding:20px;overflow-y:auto;flex:1;display:grid;gap:12px}
+.mo-foot{padding:14px 20px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+.fld input,.fld select,.fld textarea{padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;outline:none;transition:border .15s;width:100%;font-family:inherit;color:#0f172a}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.mo-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="logo">🏠 ImmoApp</div>
+    <nav id="nav"></nav>
+  </div>
+  <div class="main">
+    <div class="banner">⚠️ <strong>Demo-Version</strong> — Daten leben nur im Browser und gehen beim Schließen verloren. Für echte Datenspeicherung: Vollversion starten (STARTEN.md).</div>
+    <div id="pages" style="flex:1"></div>
+  </div>
+</div>
+
+<script>
+const fmt = n => new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(n||0);
+const fmtN = n => n?.toLocaleString('de-DE') ?? '–';
+
+const NAV = [
+  {id:'dash',  ico:'📊', lbl:'Dashboard'},
+  {id:'obj',   ico:'🏢', lbl:'Objekte'},
+  {id:'ein',   ico:'🚪', lbl:'Einheiten'},
+  {id:'miet',  ico:'👥', lbl:'Mieter'},
+  {id:'fin',   ico:'💶', lbl:'Finanzen'},
+  {id:'zaeh',  ico:'⚡', lbl:'Zählerstände'},
+  {id:'nka',   ico:'🧾', lbl:'Nebenkosten'},
+  {id:'dok',   ico:'📁', lbl:'Dokumente'},
+  {id:'komm',  ico:'✉️', lbl:'Kommunikation'},
+  {id:'kost',  ico:'💸', lbl:'Kosten'},
+  {id:'eig',   ico:'👤', lbl:'Eigentümer'},
+  {id:'bank',  ico:'🏦', lbl:'Bank / Kredite'},
+];
+
+const D = {
+  props:[
+    {id:1,name:'Musterstraße 10',addr:'Musterstraße 10',zip:'40213',city:'Düsseldorf',type:'Mehrfamilienhaus',
+     price:480000,kaufdatum:'2019-04-15',transferdatum:'2019-05-02',paymentdatum:'2019-04-20',
+     land:120000,building:360000,sqm:325,mea:'250/1000',units:4},
+    {id:2,name:'Gartenweg 3',addr:'Gartenweg 3',zip:'50667',city:'Köln',type:'Einfamilienhaus',
+     price:320000,kaufdatum:'2021-08-01',transferdatum:'2021-09-10',paymentdatum:'2021-08-05',
+     land:95000,building:225000,sqm:140,mea:'',units:1},
+    {id:3,name:'Industriepark 7',addr:'Industriepark 7',zip:'40229',city:'Düsseldorf',type:'Gewerbe',
+     price:650000,kaufdatum:'2022-03-01',transferdatum:'2022-04-01',paymentdatum:'2022-03-15',
+     land:200000,building:450000,sqm:480,mea:'',units:2},
+  ],
+  units:[
+    {id:1,prop:'Musterstraße 10',name:'Wohnung EG links',type:'Wohnung',sqm:72,tenant:'Maria Müller',rent:780},
+    {id:2,prop:'Musterstraße 10',name:'Wohnung EG rechts',type:'Wohnung',sqm:68,tenant:'Thomas Schmidt',rent:720},
+    {id:3,prop:'Musterstraße 10',name:'Wohnung 1. OG',type:'Wohnung',sqm:85,tenant:null,rent:920},
+    {id:4,prop:'Gartenweg 3',name:'Gesamthaus',type:'Wohnung',sqm:140,tenant:'Familie Becker',rent:1450},
+    {id:5,prop:'Industriepark 7',name:'Büro A',type:'Gewerberaum',sqm:120,tenant:'TechGmbH',rent:1800},
+  ],
+  tenants:[
+    {id:1,name:'Maria Müller',email:'maria@email.de',phone:'0211 123456',unit:'Wohnung EG links',kalt:650,nk:130},
+    {id:2,name:'Thomas Schmidt',email:'t.schmidt@gmail.com',phone:'0211 654321',unit:'Wohnung EG rechts',kalt:600,nk:120},
+    {id:3,name:'Familie Becker',email:'becker@web.de',phone:'0221 998877',unit:'Gesamthaus',kalt:1200,nk:250},
+    {id:4,name:'TechGmbH',email:'office@techgmbh.de',phone:'0211 111222',unit:'Büro A',kalt:1500,nk:300},
+  ],
+  payments:[
+    {id:1,date:'2026-06-05',tenant:'Maria Müller',unit:'Wohnung EG links',type:'Miete',amount:780},
+    {id:2,date:'2026-06-03',tenant:'Thomas Schmidt',unit:'Wohnung EG rechts',type:'Miete',amount:720},
+    {id:3,date:'2026-06-01',tenant:'Familie Becker',unit:'Gesamthaus',type:'Miete',amount:1450},
+    {id:4,date:'2026-06-02',tenant:'TechGmbH',unit:'Büro A',type:'Miete',amount:1800},
+    {id:5,date:'2026-05-05',tenant:'Maria Müller',unit:'Wohnung EG links',type:'Miete',amount:780},
+  ],
+  chart:[{m:'Jan',v:4100},{m:'Feb',v:4100},{m:'Mär',v:4810},{m:'Apr',v:4810},{m:'Mai',v:4750},{m:'Jun',v:4810}],
+  zaehler:[
+    {id:1,date:'2026-06-01',unit:'Wohnung EG links',typ:'Strom',wert:12450},
+    {id:2,date:'2026-06-01',unit:'Wohnung EG rechts',typ:'Strom',wert:9812},
+    {id:3,date:'2026-06-01',unit:'Gesamthaus',typ:'Gas',wert:8820},
+    {id:4,date:'2026-06-01',unit:'Wohnung EG links',typ:'Wasser kalt',wert:234.5},
+  ],
+  nka:[
+    {id:1,obj:'Musterstraße 10',jahr:2025,heiz:3200,wasser:1100,inst:800,vers:600,status:'sent'},
+    {id:2,obj:'Gartenweg 3',jahr:2025,heiz:2100,wasser:520,inst:400,vers:380,status:'finalized'},
+  ],
+  msgs:[
+    {id:1,typ:'E-Mail',betreff:'Jahresabrechnung 2025',empf:'Maria Müller',datum:'2026-02-01',text:'Sehr geehrte Frau Müller,\n\nhiermit übersenden wir Ihnen die Nebenkostenabrechnung für das Jahr 2025.\n\nMit freundlichen Grüßen\nIhr Vermieter'},
+    {id:2,typ:'Brief',betreff:'Mieterhöhung zum 01.07.2026',empf:'Thomas Schmidt',datum:'2026-05-15',text:'Sehr geehrter Herr Schmidt,\n\ngemäß §558 BGB erhöhen wir die Miete zum 01.07.2026 auf 780 €.\n\nMit freundlichen Grüßen'},
+    {id:3,typ:'SMS',betreff:'Erinnerung: Zählerstand',empf:'Familie Becker',datum:'2026-06-01',text:'Guten Tag Familie Becker, bitte übermitteln Sie bis 05.06.2026 Ihren aktuellen Zählerstand. Danke!'},
+  ],
+  owners:[
+    {id:1,sal:'Herr',fn:'Seckin',ln:'Güler',role:'Eigentümer',email:'guler9@aol.com',phone:'0211 555 0001',address:'Hauptstraße 1',zip:'40213',city:'Düsseldorf',iban:'DE89 3704 0044 0532 0130 00',tax:'112/456/78901',share:70},
+    {id:2,sal:'Frau',fn:'Anna',ln:'Güler',role:'Miteigentümerin',email:'anna.gueler@email.de',phone:'0211 555 0002',address:'Hauptstraße 1',zip:'40213',city:'Düsseldorf',iban:'DE89 3704 0044 0532 0130 01',tax:'112/456/78902',share:30},
+  ],
+  costs:[
+    {id:1,date:'2026-01-15',cat:'Grundsteuer',label:'Grundsteuer',desc:'Grundsteuer Q1 2026',obj:'Musterstraße 10',amount:480,alloc:true},
+    {id:2,date:'2026-02-03',cat:'versicherung',label:'Gebäude- & Haftpflichtversicherung',desc:'Jahresprämie 2026',obj:'Musterstraße 10',amount:1240,alloc:true},
+    {id:3,date:'2026-03-10',cat:'muell',label:'Müllbeseitigung / Müllabfuhr',desc:'Müllabfuhr März',obj:'Gartenweg 3',amount:68,alloc:true},
+    {id:4,date:'2026-04-20',cat:'instandhaltung',label:'Instandhaltung / Reparaturen',desc:'Rohrbruch Badezimmer EG',obj:'Musterstraße 10',amount:850,alloc:false},
+    {id:5,date:'2026-05-05',cat:'hauswart',label:'Hauswart / Hausmeister',desc:'Hausmeisterdienst Mai',obj:'Musterstraße 10',amount:320,alloc:true},
+    {id:6,date:'2026-06-01',cat:'gartenpflege',label:'Gartenpflege / Grünpflege',desc:'Gartenpflege Frühjahr',obj:'Gartenweg 3',amount:190,alloc:true},
+  ],
+  kredite:[
+    {id:1,bank:'Sparkasse Düsseldorf',obj:'Musterstraße 10',zweck:'Immobilienfinanzierung',summe:380000,restschuld:312400,tilgung:2.0,zinsen:3.85,rate:1875,startdatum:'2019-05-01',laufzeit:25,status:'aktiv'},
+    {id:2,bank:'Deutsche Bank',obj:'Gartenweg 3',zweck:'Immobilienfinanzierung',summe:240000,restschuld:198500,tilgung:2.5,zinsen:4.10,rate:1320,startdatum:'2021-09-01',laufzeit:20,status:'aktiv'},
+    {id:3,bank:'Volksbank Köln',obj:'Industriepark 7',zweck:'Gewerbefinanzierung',summe:520000,restschuld:489000,tilgung:1.8,zinsen:4.50,rate:2730,startdatum:'2022-04-01',laufzeit:30,status:'aktiv'},
+  ],
+  docs:[
+    {id:1,name:'Mietvertrag_Maria_Müller.pdf',cat:'Mietvertrag',size:'239 KB',date:'2019-01-01'},
+    {id:2,name:'Nebenkostenabrechnung_2025.pdf',cat:'Nebenkostenabrechnung',size:'178 KB',date:'2026-02-15'},
+    {id:3,name:'Versicherungspolice.pdf',cat:'Versicherung',size:'500 KB',date:'2021-03-01'},
+    {id:4,name:'Handwerkerrechnung_April.pdf',cat:'Rechnung',size:'96 KB',date:'2026-04-20'},
+  ],
+};
+
+let cur = 'dash', selMsg = 0, docCat = '', finTab = 'list', bankTab = 'kredite', selNka = 0;
+const KV = {kp:400000, ek:80000, tilg:2.0, lz:20, typ:'Alle', search:''};
+
+function navigate(id) {
+  cur = id;
+  document.querySelectorAll('.nb').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  render();
+}
+
+function bars() {
+  const maxV = Math.max(...D.chart.map(c => c.v));
+  return D.chart.map(c => `
+    <div class="bar-wrap">
+      <div class="bar-val">${(c.v/1000).toFixed(1)}k</div>
+      <div class="bar" style="height:${Math.round(c.v/maxV*90)}px"></div>
+      <div class="bar-lbl">${c.m}</div>
+    </div>`).join('');
+}
+
+function renderDash() {
+  // ── Einnahmen ──
+  const kaltmiete   = D.tenants.reduce((s,t) => s + (t.kalt||0), 0);
+  const nkEinnahmen = D.tenants.reduce((s,t) => s + (t.nk||0), 0);
+  const gesamtEinn  = kaltmiete + nkEinnahmen;
+
+  // ── Ausgaben ──
+  const nkAusgabenJahr = D.costs.filter(c=>c.alloc).reduce((s,c) => s + c.amount, 0);
+  const nkAusgabenMtl  = nkAusgabenJahr / 12;
+  const kreditraten    = D.kredite.reduce((s,k) => s + (k.rate||0), 0);
+  const gesamtAusg     = nkAusgabenMtl + kreditraten;
+
+  // ── Ergebnis ──
+  const nkSaldo      = nkEinnahmen - nkAusgabenMtl;   // NK-Einnahmen minus NK-Ausgaben
+  const nettoueberschuss = kaltmiete - kreditraten;     // Kaltmiete minus Kredit
+  const gesamtSaldo  = gesamtEinn - gesamtAusg;
+
+  const saldoColor = v => v >= 0 ? '#15803d' : '#dc2626';
+  const saldoIcon  = v => v >= 0 ? '▲' : '▼';
+  const saldoLabel = v => v >= 0 ? 'Überschuss' : 'Eigenzahlung';
+
+  const pays = D.payments.slice(0,5).map(p => `
+    <div class="pay-row">
+      <div><div class="pay-name">${p.tenant}</div><div class="pay-meta">${p.unit} · ${p.date}</div></div>
+      <div class="pay-amt">${fmt(p.amount)}</div>
+    </div>`).join('');
+
+  return `<h1>Dashboard</h1><p class="sub">Finanzielle Gesamtübersicht · monatliche Betrachtung</p>
+
+<!-- KPIs -->
+<div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+  <div class="kpi"><span style="font-size:22px">🏢</span><div><div class="kv">${D.props.length}</div><div class="kl">Objekte</div></div></div>
+  <div class="kpi"><span style="font-size:22px">🚪</span><div><div class="kv">${D.units.length}</div><div class="kl">Einheiten</div></div></div>
+  <div class="kpi"><span style="font-size:22px">👥</span><div><div class="kv">${D.tenants.length}</div><div class="kl">Mieter</div></div></div>
+  <div class="kpi"><span style="font-size:22px">🏦</span><div><div class="kv">${D.kredite.length}</div><div class="kl">Laufende Kredite</div></div></div>
+</div>
+
+<!-- Finanzübersicht -->
+<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+  <div style="background:#0f172a;color:#fff;padding:14px 18px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px">
+    📊 Monatliche Finanzübersicht
+  </div>
+
+  <!-- Einnahmen -->
+  <div style="padding:16px 18px;border-bottom:2px solid #f1f5f9">
+    <div style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">✅ Einnahmen</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0;align-items:center">
+      <div style="padding:8px 12px;background:#f0fdf4;border-radius:8px;margin-right:8px">
+        <div style="font-size:11px;color:#64748b">Kaltmiete (Nettomiete)</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-top:2px">${fmt(kaltmiete)}</div>
+      </div>
+      <div style="padding:8px 12px;background:#f0fdf4;border-radius:8px">
+        <div style="font-size:11px;color:#64748b">Nebenkosten-Vorauszahlung</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-top:2px">${fmt(nkEinnahmen)}</div>
+      </div>
+      <div style="padding:8px 16px;text-align:right">
+        <div style="font-size:11px;color:#64748b">Gesamt</div>
+        <div style="font-size:22px;font-weight:800;color:#15803d;margin-top:2px">${fmt(gesamtEinn)}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ausgaben -->
+  <div style="padding:16px 18px;border-bottom:2px solid #f1f5f9">
+    <div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">❌ Ausgaben</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0;align-items:center">
+      <div style="padding:8px 12px;background:#fff5f5;border-radius:8px;margin-right:8px">
+        <div style="font-size:11px;color:#64748b">Nebenkosten-Ausgaben (Ø/Monat)</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-top:2px">${fmt(nkAusgabenMtl)}</div>
+        <div style="font-size:10px;color:#94a3b8">Jahressumme: ${fmt(nkAusgabenJahr)}</div>
+      </div>
+      <div style="padding:8px 12px;background:#fff5f5;border-radius:8px">
+        <div style="font-size:11px;color:#64748b">Kreditraten (alle Objekte)</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-top:2px">${fmt(kreditraten)}</div>
+        <div style="font-size:10px;color:#94a3b8">${D.kredite.length} laufende Kredite</div>
+      </div>
+      <div style="padding:8px 16px;text-align:right">
+        <div style="font-size:11px;color:#64748b">Gesamt</div>
+        <div style="font-size:22px;font-weight:800;color:#dc2626;margin-top:2px">${fmt(gesamtAusg)}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Berechnungen -->
+  <div style="padding:16px 18px;background:#f8fafc;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+
+    <!-- NK-Saldo -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">NK-Einnahmen − NK-Ausgaben</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:6px">${fmt(nkEinnahmen)} − ${fmt(nkAusgabenMtl)}</div>
+      <div style="font-size:22px;font-weight:800;color:${saldoColor(nkSaldo)}">${fmt(Math.abs(nkSaldo))}</div>
+      <div style="font-size:12px;font-weight:600;color:${saldoColor(nkSaldo)};margin-top:2px">${saldoIcon(nkSaldo)} NK-${saldoLabel(nkSaldo)}</div>
+    </div>
+
+    <!-- Nettomiete − Kredit -->
+    <div style="background:#fff;border:2px solid ${saldoColor(nettoueberschuss)};border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">Nettomiete − Kreditraten</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:6px">${fmt(kaltmiete)} − ${fmt(kreditraten)}</div>
+      <div style="font-size:26px;font-weight:800;color:${saldoColor(nettoueberschuss)}">${fmt(Math.abs(nettoueberschuss))}</div>
+      <div style="font-size:12px;font-weight:600;color:${saldoColor(nettoueberschuss)};margin-top:2px">${saldoIcon(nettoueberschuss)} ${saldoLabel(nettoueberschuss)}</div>
+    </div>
+
+    <!-- Gesamtsaldo -->
+    <div style="background:${gesamtSaldo>=0?'#f0fdf4':'#fff5f5'};border:1px solid ${saldoColor(gesamtSaldo)};border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">Gesamteinnahmen − Gesamtausgaben</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:6px">${fmt(gesamtEinn)} − ${fmt(gesamtAusg)}</div>
+      <div style="font-size:22px;font-weight:800;color:${saldoColor(gesamtSaldo)}">${fmt(Math.abs(gesamtSaldo))}</div>
+      <div style="font-size:12px;font-weight:600;color:${saldoColor(gesamtSaldo)};margin-top:2px">${saldoIcon(gesamtSaldo)} Gesamt-${saldoLabel(gesamtSaldo)}</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Diagramm + letzte Zahlungen -->
+<div class="two">
+  <div class="card"><h2>Einnahmen letzte 6 Monate</h2><div class="charts">${bars()}</div></div>
+  <div class="card"><h2>Letzte Zahlungen</h2>${pays}</div>
+</div>
+
+<!-- Schnellzugriff -->
+<div class="card"><h2>Schnellzugriff</h2>
+  <div class="quick">
+    <div class="qi" onclick="navigate('obj');setTimeout(openNewProp,50)"><span style="font-size:22px">🏢</span>Objekt anlegen</div>
+    <div class="qi" onclick="navigate('miet');setTimeout(openNewTenant,50)"><span style="font-size:22px">👤</span>Mieter anlegen</div>
+    <div class="qi" onclick="navigate('kost');setTimeout(openNewCost,50)"><span style="font-size:22px">💸</span>Kosten erfassen</div>
+    <div class="qi" onclick="navigate('bank');setTimeout(openNewKredit,50)"><span style="font-size:22px">🏦</span>Kredit anlegen</div>
+  </div>
+</div>`;
+}
+
+function renderObj() {
+  const fmtE = n => n ? n.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})+' €' : '—';
+  const cards = D.props.map(p => {
+    const landPct = p.price && p.land ? ((p.land/p.price)*100).toFixed(0) : null;
+    const bldPct  = p.price && p.building ? ((p.building/p.price)*100).toFixed(0) : null;
+    return `
+    <div class="card" style="cursor:pointer" onclick="showPropDetail(${p.id})">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div><div style="font-weight:600;font-size:14px;color:#0f172a">${p.name}</div>
+        <div style="font-size:11px;color:#64748b">${p.type}</div></div>
+        <span class="bdg b">${p.units} Einh.</span>
+      </div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:10px">📍 ${p.addr}, ${p.zip} ${p.city}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;margin-bottom:10px">
+        <div><span style="color:#94a3b8">Kaufpreis</span><br><strong>${fmtE(p.price)}</strong></div>
+        <div><span style="color:#94a3b8">Gesamtfläche</span><br><strong>${p.sqm} m²</strong></div>
+        <div><span style="color:#94a3b8">Gekauft am</span><br><strong>${p.kaufdatum}</strong></div>
+        <div><span style="color:#94a3b8">Überschrieben am</span><br><strong>${p.transferdatum}</strong></div>
+        <div><span style="color:#94a3b8">Bezahlt am</span><br><strong>${p.paymentdatum}</strong></div>
+        ${p.mea?`<div><span style="color:#94a3b8">MEA</span><br><strong>${p.mea}</strong></div>`:'<div></div>'}
+      </div>
+      ${(p.land&&p.building)?`
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:3px">
+          <span>🏕 Grundstück ${fmtE(p.land)} (${landPct}%)</span>
+          <span>🏗 Gebäude ${fmtE(p.building)} (${bldPct}%)</span>
+        </div>
+        <div style="height:8px;border-radius:4px;overflow:hidden;background:#f1f5f9;display:flex">
+          <div style="background:#f59e0b;width:${landPct}%"></div>
+          <div style="background:#3b82f6;width:${bldPct}%"></div>
+        </div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px">AfA-Basis (Gebäudeanteil): ${fmtE(p.building)}</div>
+      </div>`:''}
+      <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+        <button class="btn-s" style="font-size:11px" onclick="openEditProp(${p.id})">✏️ Bearbeiten</button>
+        <button class="btn-s" style="font-size:11px;color:#ef4444;border-color:#fecaca" onclick="if(confirm('Objekt löschen?')){D.props=D.props.filter(x=>x.id!==${p.id});render()}">🗑</button>
+      </div>
+    </div>`}).join('');
+  return `<div class="hdr"><div><h1>Objekte</h1><p class="sub">${D.props.length} Objekte</p></div>
+    <button class="btn-p" onclick="openNewProp()">+ Objekt anlegen</button></div>
+  <div class="prop-grid">${cards}</div>`;
+}
+
+function showPropDetail(id) { openEditProp(id); }
+
+function renderEin() {
+  const rows = D.units.map(u => `<tr>
+    <td><strong>${u.name}</strong></td>
+    <td style="color:#64748b">${u.prop}</td>
+    <td>${u.type}</td>
+    <td>${u.sqm} m²</td>
+    <td>${u.tenant || '<span style="color:#94a3b8">Leer</span>'}</td>
+    <td>${fmt(u.rent)}</td>
+    <td>${u.tenant ? '<span class="bdg g">Vermietet</span>' : '<span class="bdg y">Leer</span>'}</td>
+    <td><button class="icon-btn" onclick="openEditUnit(${u.id})">✏️</button> <button class="icon-btn" onclick="if(confirm('Einheit löschen?')){D.units=D.units.filter(x=>x.id!==${u.id});render()}">🗑</button></td>
+  </tr>`).join('');
+  return `<div class="hdr"><div><h1>Einheiten</h1><p class="sub">${D.units.length} Einheiten · ${D.units.filter(u=>u.tenant).length} vermietet</p></div>
+    <button class="btn-p" onclick="openNewUnit()">+ Einheit anlegen</button></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>Einheit</th><th>Objekt</th><th>Typ</th><th>m²</th><th>Mieter</th><th>Kaltmiete</th><th>Status</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+  </div>`;
+}
+
+function renderMiet() {
+  const rows = D.tenants.map(t => `<tr>
+    <td><strong>${t.name}</strong></td>
+    <td style="color:#64748b">${t.email}</td>
+    <td style="color:#64748b">${t.phone}</td>
+    <td style="color:#0f172a">${fmt(t.kalt)}</td>
+    <td style="color:#0f172a">${fmt(t.nk)}</td>
+    <td style="font-weight:600;color:#2563eb">${fmt(t.kalt+t.nk)}</td>
+    <td>${t.unit}</td>
+    <td><span class="bdg g">Aktiv</span></td>
+    <td><button class="icon-btn" onclick="openEditTenant(${t.id})">✏️</button> <button class="icon-btn" onclick="if(confirm('Mieter löschen?')){D.tenants=D.tenants.filter(x=>x.id!==${t.id});render()}">🗑</button></td>
+  </tr>`).join('');
+  return `<div class="hdr"><div><h1>Mieter</h1><p class="sub">${D.tenants.length} Mieter</p></div>
+    <button class="btn-p" onclick="openNewTenant()">+ Mieter anlegen</button></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>Name</th><th>E-Mail</th><th>Telefon</th><th>Kaltmiete</th><th>Nebenkosten</th><th>Gesamtmiete</th><th>Einheit</th><th>Status</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+  </div>`;
+}
+
+function renderFin() {
+  const total = D.payments.reduce((s,p) => s + p.amount, 0);
+  const chart = `<div class="card"><h2>Einnahmen letzte 6 Monate</h2><div class="charts">${bars()}</div></div>`;
+  const rows = D.payments.map(p => `<tr>
+    <td>${p.date}</td>
+    <td><strong>${p.tenant}</strong></td>
+    <td style="color:#64748b">${p.unit}</td>
+    <td><span class="bdg b">${p.type}</span></td>
+    <td style="font-weight:700;color:#16a34a">${fmt(p.amount)}</td>
+    <td><button class="icon-btn" onclick="if(confirm('Zahlung löschen?')){D.payments=D.payments.filter(x=>x.id!==${p.id});render()}">🗑</button></td>
+  </tr>`).join('');
+  const list = `<div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>Datum</th><th>Mieter</th><th>Einheit</th><th>Typ</th><th>Betrag</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+  </div>`;
+  return `<div class="hdr"><div><h1>Finanzen & Mieteinnahmen</h1></div>
+    <button class="btn-p" onclick="openNewPayment()">+ Zahlung erfassen</button></div>
+  <div class="stat-row">
+    <div class="stat"><div class="stat-v" style="color:#16a34a">${fmt(total)}</div><div class="stat-l">Einnahmen gesamt</div></div>
+    <div class="stat"><div class="stat-v" style="color:#2563eb">${D.payments.length}</div><div class="stat-l">Zahlungen erfasst</div></div>
+    <div class="stat"><div class="stat-v">${fmt(total/6)}</div><div class="stat-l">Ø pro Monat</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab ${finTab==='list'?'on':''}" onclick="finTab='list';render()">Liste</button>
+    <button class="tab ${finTab==='chart'?'on':''}" onclick="finTab='chart';render()">Diagramm</button>
+  </div>
+  ${finTab==='chart' ? chart : list}`;
+}
+
+function renderZaeh() {
+  const rows = D.zaehler.map(z => `<tr>
+    <td>${z.date}</td>
+    <td><strong>${z.unit}</strong></td>
+    <td>${z.typ}</td>
+    <td style="font-family:monospace;font-weight:700">${fmtN(z.wert)}</td>
+    <td><button class="icon-btn" onclick="if(confirm('Löschen?')){D.zaehler=D.zaehler.filter(x=>x.id!==${z.id});render()}">🗑</button></td>
+  </tr>`).join('');
+  return `<div class="hdr"><div><h1>Zählerstände</h1><p class="sub">Strom, Gas, Wasser, Heizung</p></div>
+    <button class="btn-p" onclick="openNewZaehler()">+ Zählerstand erfassen</button></div>
+  <div class="zaeh-typen">
+    ${[['⚡','Strom'],['🔥','Gas'],['💧','Wasser kalt'],['🌡️','Heizung']].map(([i,l])=>`
+      <div class="zt"><div style="font-size:24px">${i}</div><div style="font-size:12px;font-weight:600;margin-top:6px">${l}</div></div>`).join('')}
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>Datum</th><th>Einheit</th><th>Typ</th><th>Zählerstand</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+  </div>`;
+}
+
+function openEditNka(id) {
+  const b = D.nka.find(x=>x.id===id); if (!b) return;
+  openMo('Abrechnung bearbeiten', `
+    <div class="fld"><label>Objekt</label><select id="nkaobj">${D.props.map(p=>`<option${p.name===b.obj?' selected':''}>${p.name}</option>`).join('')}</select></div>
+    <div class="mo-2col">
+      <div class="fld"><label>Abrechnungsjahr</label><input id="nkajahr" type="number" value="${b.jahr}" min="2000" max="2099"></div>
+      <div class="fld"><label>Status</label><select id="nkastatus">
+        <option value="draft"${b.status==='draft'?' selected':''}>Entwurf</option>
+        <option value="sent"${b.status==='sent'?' selected':''}>Verschickt</option>
+        <option value="finalized"${b.status==='finalized'?' selected':''}>Abgeschlossen</option>
+      </select></div>
+    </div>
+  `, () => {
+    Object.assign(b, {obj:gv('nkaobj'), jahr:+gv('nkajahr'), status:gv('nkastatus')});
+    closeMo(); render();
+  });
+}
+
+function renderNka() {
+  const sl = {sent:'Verschickt', finalized:'Abgeschlossen', draft:'Entwurf'};
+  const sc = {sent:'b', finalized:'g', draft:'y'};
+
+  // Aktuell gewählte Abrechnung
+  if (selNka >= D.nka.length) selNka = 0;
+  const sel = D.nka[selNka];
+
+  // NKA-Liste mit Klick-Auswahl + Bearbeiten
+  const rows = D.nka.map((b,i) => `<tr style="${i===selNka?'background:#eff6ff;':''}cursor:pointer" onclick="selNka=${i};render()">
+    <td style="padding:10px 12px"><strong>${b.obj}</strong></td>
+    <td style="padding:10px 12px">${b.jahr}</td>
+    <td style="padding:10px 12px"><span class="bdg ${sc[b.status]}">${sl[b.status]}</span></td>
+    <td style="padding:10px 12px;font-size:11px;color:#64748b">Wohnfläche (m²)</td>
+    <td style="padding:10px 12px">
+      <button class="icon-btn" onclick="event.stopPropagation();openEditNka(${b.id})">✏️</button>
+      <button class="icon-btn" onclick="event.stopPropagation();if(confirm('Abrechnung löschen?')){D.nka=D.nka.filter(x=>x.id!==${b.id});if(selNka>=D.nka.length)selNka=0;render()}">🗑</button>
+    </td>
+  </tr>`).join('');
+
+  // Dynamisch: Kosten + Einheiten zum gewählten Objekt
+  const detail = sel ? (() => {
+    const importedCosts = D.costs.filter(c => c.alloc && c.obj === sel.obj);
+    const totalKosten   = importedCosts.reduce((s,c)=>s+c.amount, 0);
+    const objUnits      = D.units.filter(u => u.prop === sel.obj).map(u => {
+      const tenant = D.tenants.find(t => t.unit === u.name);
+      return { name: u.name, sqm: u.sqm||0, tenant: tenant?.name||'(Leerstand)', nkVoraus: tenant?.nk||0 };
+    });
+    const totalSqm = objUnits.reduce((s,u)=>s+u.sqm, 0);
+
+    const kostRows = importedCosts.length
+      ? importedCosts.map(c=>`
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #dbeafe;color:#374151">
+            <span>${c.date} · ${c.label}</span>
+            <span style="font-weight:600">${fmt(c.amount)}</span>
+          </div>`).join('')
+      : '<p style="font-size:12px;color:#94a3b8;margin:0">Keine umlagefähigen Kosten für dieses Objekt erfasst.</p>';
+
+    const unitRows = objUnits.length
+      ? objUnits.map(u => {
+          const share   = totalSqm > 0 ? u.sqm / totalSqm : 0;
+          const anteil  = totalKosten * share;
+          const prepaid = u.nkVoraus * 12;
+          const diff    = prepaid - anteil;
+          return `<div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8fafc">
+              <div>
+                <div style="font-weight:600;font-size:13px">${u.name}</div>
+                <div style="font-size:11px;color:#64748b">${u.tenant} · ${u.sqm} m² · Anteil ${(share*100).toFixed(1)} %</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-weight:700;font-size:14px">${fmt(anteil)}</div>
+                <div style="font-size:11px;font-weight:600;color:${diff>=0?'#15803d':'#dc2626'}">
+                  ${diff>=0?'+':''} ${fmt(Math.abs(diff))} ${diff>=0?'Guthaben':'Nachzahlung'}
+                </div>
+              </div>
+            </div>
+            <div style="padding:8px 14px;background:#fff;font-size:11px;color:#64748b">
+              Vorauszahlungen (${u.nkVoraus} € × 12 Mte.) = ${fmt(prepaid)}
+            </div>
+          </div>`;
+        }).join('')
+      : '<p style="font-size:12px;color:#94a3b8">Keine Einheiten für dieses Objekt gefunden.</p>';
+
+    return `
+    <div class="card" style="background:#eff6ff;border-color:#bfdbfe;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:#1e40af">
+          📥 Importierte Kosten – ${sel.obj} (${sel.jahr})
+        </div>
+        <span class="bdg ${sc[sel.status]}">${sl[sel.status]}</span>
+      </div>
+      ${kostRows}
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#1e40af;border-top:1px solid #bfdbfe;margin-top:8px;padding-top:8px">
+        <span>Gesamt umlagefähig</span><span>${fmt(totalKosten)}</span>
+      </div>
+      <div style="font-size:11px;color:#64748b;margin-top:4px">Verteilerschlüssel: Wohnfläche (m²) · ${totalSqm} m² gesamt</div>
+    </div>
+    <div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:12px">📊 Verteilung auf Einheiten – ${sel.obj}</div>
+    ${unitRows}`;
+  })() : '<p style="color:#94a3b8;font-size:13px">Keine Abrechnung ausgewählt.</p>';
+
+  return `<div class="hdr"><div><h1>Nebenkostenabrechnung</h1>
+    <p class="sub">Kosten werden automatisch aus dem Kosten-Modul importiert · Abrechnung anklicken zum Anzeigen</p></div>
+    <button class="btn-p" onclick="openNewNka()">+ Abrechnung anlegen</button></div>
+
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+    <table><thead><tr><th>Objekt</th><th>Jahr</th><th>Status</th><th>Schlüssel</th><th></th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="5" style="padding:16px;text-align:center;color:#94a3b8">Noch keine Abrechnungen angelegt.</td></tr>'}</tbody></table>
+  </div>
+
+  ${detail}`;
+}
+
+function renderDok() {
+  const cats = ['Mietvertrag','Nebenkostenabrechnung','Versicherung','Rechnung','Protokoll'];
+  const filtered = docCat ? D.docs.filter(d => d.cat===docCat) : D.docs;
+  const pills = ['<button class="pill'+(docCat===''?' on':'')+'" onclick="docCat=\'\';render()">Alle</button>',
+    ...cats.map(c => `<button class="pill${docCat===c?' on':''}" onclick="docCat='${c}';render()">${c}</button>`)].join('');
+  const cards = filtered.map(d => `
+    <div class="dok-c">
+      <div class="dok-top">
+        <span style="font-size:28px">📄</span>
+        <div style="min-width:0">
+          <div class="dok-name">${d.name}</div>
+          <div class="dok-meta">${d.cat} · ${d.size} · ${d.date}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-s" style="flex:1;justify-content:center;font-size:12px">⬇️ Herunterladen</button>
+        <button class="btn-s" style="font-size:12px;color:#ef4444" onclick="if(confirm('Dokument löschen?')){D.docs=D.docs.filter(x=>x.id!==${d.id});render()}">🗑</button>
+      </div>
+    </div>`).join('');
+  return `<div class="hdr"><div><h1>Dokumente</h1><p class="sub">${D.docs.length} Dokumente</p></div>
+    <button class="btn-p" onclick="alert('Demo: Datei-Upload nicht verfügbar. In der Vollversion können Sie Dokumente hochladen.')">+ Hochladen</button></div>
+  <div class="upload-zone">📤 Datei hierher ziehen oder klicken<br><span style="font-size:11px">PDF, Word, Excel, Bilder – max. 10 MB</span></div>
+  <div class="pills">${pills}</div>
+  <div class="dok-grid">${cards}</div>`;
+}
+
+function renderKomm() {
+  const icons = {'E-Mail':'📧','Brief':'✉️','SMS':'📱'};
+  const list = D.msgs.map((m,i) => `
+    <div class="msg-item${selMsg===i?' sel':''}" onclick="selMsg=${i};render()">
+      <div class="mt">${icons[m.typ]||'📨'} ${m.betreff}</div>
+      <div class="mm">${m.empf} · ${m.datum}</div>
+    </div>`).join('');
+  const sel = D.msgs[selMsg];
+  const detail = sel ? `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+        <div>
+          <div style="font-size:14px;font-weight:600">${sel.betreff}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:3px">${icons[sel.typ]||'📨'} ${sel.typ} · ${sel.empf} · ${sel.datum}</div>
+        </div>
+        <button class="icon-btn" style="color:#ef4444" onclick="if(confirm('Nachricht löschen?')){D.msgs=D.msgs.filter((_,i)=>i!==${selMsg});selMsg=0;render()}">🗑</button>
+      </div>
+      <div class="msg-body">${sel.text}</div>
+    </div>` : `<div class="card" style="display:flex;align-items:center;justify-content:center;min-height:180px;color:#94a3b8;text-align:center;font-size:13px">📬<br><br>Nachricht auswählen</div>`;
+  return `<div class="hdr"><div><h1>Kommunikation</h1><p class="sub">E-Mails, Briefe & SMS an Mieter</p></div>
+    <button class="btn-p" onclick="openNewMsg()">+ Nachricht erstellen</button></div>
+  <div class="msg-grid"><div class="msg-list">${list}</div>${detail}</div>`;
+}
+
+function renderEig() {
+  const nProps = D.props.length;
+  const monthly = nProps * 9.99;
+  const yearly  = monthly * 12;
+  const fmtE = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+  const totalShare = D.owners.reduce((s,o)=>s+o.share,0);
+  const shareOk = Math.abs(totalShare-100)<0.01;
+
+  const cards = D.owners.map(o=>`
+    <div class="card" style="position:relative">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1d4ed8;font-size:14px;flex-shrink:0">${o.fn[0]}${o.ln[0]}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:#0f172a">${o.sal} ${o.fn} ${o.ln}</div>
+            <div style="font-size:11px;color:#64748b">${o.role}</div>
+          </div>
+        </div>
+        <span class="bdg b" style="font-size:12px">${o.share} %</span>
+      </div>
+      <div style="font-size:12px;color:#475569;display:grid;gap:3px">
+        <div>📧 ${o.email}</div>
+        <div>📞 ${o.phone}</div>
+        <div>📍 ${o.address}, ${o.zip} ${o.city}</div>
+        <div style="font-family:monospace;font-size:11px;color:#94a3b8;margin-top:2px">IBAN: ${o.iban}</div>
+        <div style="font-size:11px;color:#94a3b8">Steuernr.: ${o.tax}</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #f1f5f9">
+        <button class="btn-s" style="font-size:11px" onclick="openEditEig(${o.id})">Bearbeiten</button>
+        <button class="btn-s" style="font-size:11px;color:#ef4444;border-color:#fecaca" onclick="if(confirm('Löschen?')){D.owners=D.owners.filter(x=>x.id!==${o.id});render()}">Löschen</button>
+      </div>
+    </div>`).join('');
+
+  const propBadges = D.props.map(p=>`
+    <span style="display:inline-flex;align-items:center;gap:6px;background:#dbeafe;color:#1e40af;font-size:12px;padding:4px 10px;border-radius:20px;font-weight:500">
+      🏢 ${p.name} · 9,99 €/Monat <span style="background:#dcfce7;color:#15803d;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:2px">Aktiv</span>
+    </span>`).join('');
+
+  return `<div class="hdr">
+    <div><h1>Eigentümer</h1><p class="sub">${D.owners.length} / 10 Eigentümer · Daten werden für Nebenkostenabrechnungen verwendet</p></div>
+    <button class="btn-p" onclick="openNewEig()">+ Eigentümer anlegen</button>
+  </div>
+
+  <!-- Lizenz-Box -->
+  <div style="border:2px solid #bfdbfe;border-radius:14px;background:linear-gradient(135deg,#eff6ff,#eef2ff);padding:20px;margin-bottom:18px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:20px">🔑</span>
+          <span style="font-weight:700;color:#1e3a8a;font-size:15px">Software-Lizenz</span>
+        </div>
+        <div style="font-size:13px;color:#1d4ed8"><strong>9,99 € / Monat pro Objekt</strong> · unbegrenzte Einheiten pro Objekt</div>
+        <div style="font-size:11px;color:#3b82f6;margin-top:2px">Lizenz gilt pro Objekt, unabhängig von der Anzahl der Einheiten.</div>
+      </div>
+      <div style="display:flex;gap:12px;flex-shrink:0">
+        <div style="background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="font-size:24px;font-weight:700;color:#1d4ed8">${nProps}</div>
+          <div style="font-size:11px;color:#64748b">Objekte</div>
+        </div>
+        <div style="background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="font-size:20px;font-weight:700;color:#1d4ed8">${fmtE(monthly)}</div>
+          <div style="font-size:11px;color:#64748b">/ Monat</div>
+        </div>
+        <div style="background:#fff;border:1px solid #c7d2fe;border-radius:10px;padding:10px 18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="font-size:20px;font-weight:700;color:#4338ca">${fmtE(yearly)}</div>
+          <div style="font-size:11px;color:#64748b">/ Jahr</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid #bfdbfe;display:flex;flex-wrap:wrap;gap:8px">
+      ${propBadges}
+    </div>
+  </div>
+
+  <!-- Eigentümer-Karten -->
+  <div class="two">${cards}</div>
+
+  <!-- Anteil-Hinweis -->
+  ${D.owners.length>1?`<div style="padding:10px 14px;border-radius:8px;font-size:13px;border:1px solid ${shareOk?'#bbf7d0':'#fde68a'};background:${shareOk?'#f0fdf4':'#fffbeb'};color:${shareOk?'#15803d':'#92400e'}">
+    ${shareOk?'✅ Eigentumsanteile vollständig: 100 %':'⚠️ Eigentumsanteile ergeben '+totalShare.toFixed(1)+' % (sollte 100 % sein)'}
+  </div>`:''}`;
+}
+
+function renderKost() {
+  const totalAll = D.costs.reduce((s,c) => s+c.amount,0);
+  const totalAlloc = D.costs.filter(c=>c.alloc).reduce((s,c)=>s+c.amount,0);
+  const totalNot = D.costs.filter(c=>!c.alloc).reduce((s,c)=>s+c.amount,0);
+  const rows = D.costs.map(c => `<tr>
+    <td style="color:#64748b">${c.date}</td>
+    <td><strong>${c.label}</strong></td>
+    <td style="color:#64748b">${c.desc||'–'}</td>
+    <td style="color:#64748b">${c.obj||'–'}</td>
+    <td>${c.alloc ? '<span class="bdg g">Ja (§ 2 BetrKV)</span>' : '<span class="bdg gr">Nein</span>'}</td>
+    <td style="text-align:right;font-weight:600">${fmt(c.amount)}</td>
+    <td><button class="icon-btn" onclick="openEditCost(${c.id})">✏️</button> <button class="icon-btn" onclick="if(confirm('Löschen?')){D.costs=D.costs.filter(x=>x.id!==${c.id});render()}">🗑</button></td>
+  </tr>`).join('');
+  return `<div class="hdr"><div><h1>Kosten</h1><p class="sub">Betriebskosten & Ausgaben verwalten</p></div>
+    <button class="btn-p" onclick="openNewCost()">+ Kosten erfassen</button></div>
+  <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi"><span style="font-size:22px">💸</span><div><div class="kv" style="font-size:16px">${fmt(totalAll)}</div><div class="kl">Gesamtkosten 2026</div></div></div>
+    <div class="kpi"><span style="font-size:22px">✅</span><div><div class="kv" style="font-size:16px;color:#15803d">${fmt(totalAlloc)}</div><div class="kl">Umlagefähig (§ 2 BetrKV)</div></div></div>
+    <div class="kpi"><span style="font-size:22px">❌</span><div><div class="kv" style="font-size:16px;color:#ea580c">${fmt(totalNot)}</div><div class="kl">Nicht umlagefähig</div></div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table>
+      <thead><tr><th>Datum</th><th>Kostenart</th><th>Beschreibung</th><th>Objekt</th><th>Umlagefähig</th><th style="text-align:right">Betrag</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr style="background:#f8fafc;font-weight:600"><td colspan="5" style="padding:10px 10px">Gesamt</td><td style="text-align:right;padding:10px 10px">${fmt(totalAll)}</td><td></td></tr></tfoot>
+    </table>
+  </div>`;
+}
+
+function kvUpdate(key, val) { KV[key] = +val; render(); }
+
+function renderBankVergleich() {
+  const kp = KV.kp, ek = KV.ek, tilg = KV.tilg, lz = KV.lz;
+  const kredit   = Math.max(0, kp - ek);
+  const ltv      = kp > 0 ? kredit / kp * 100 : 0;
+  const ekPct    = kp > 0 ? ek / kp * 100 : 0;
+  const n        = lz * 12;
+
+  // Annuität: monatliche Rate
+  function annuitaet(K, zinsPa) {
+    const z = zinsPa / 100 / 12;
+    if (z <= 0 || K <= 0 || n <= 0) return 0;
+    return K * z * Math.pow(1+z,n) / (Math.pow(1+z,n) - 1);
+  }
+
+  // Aufschlag je Laufzeit & LTV
+  const lzAdj  = lz <= 10 ? 0 : lz <= 15 ? 0.15 : lz <= 20 ? 0.30 : lz <= 25 ? 0.45 : 0.60;
+  const ltvAdj = ltv > 90 ? 0.60 : ltv > 80 ? 0.35 : ltv > 70 ? 0.15 : 0;
+
+  // Alle relevanten Banken / Vermittler mit Immobilienfinanzierung in DE (Stand: Mitte 2025, Richtwerte 10J Zinsbindung)
+  const ALL_BANKS = [
+    // Vermittler – finden meist günstigste Konditionen
+    {name:'Interhyp',                   ico:'🔍', base:3.50, typ:'Vermittler',        note:'Größter Baufi-Vermittler DE, 500+ Anbieter'},
+    {name:'CHECK24 Baufinanzierung',    ico:'🔍', base:3.52, typ:'Vermittler',        note:'Online-Vergleichsportal mit Direktabschluss'},
+    {name:'Dr. Klein',                  ico:'🔍', base:3.54, typ:'Vermittler',        note:'Unabhängige Beratung & Vergleich'},
+    {name:'Baufi24',                    ico:'🔍', base:3.55, typ:'Vermittler',        note:'Digitaler Baufinanzierungsvermittler'},
+    {name:'PlanetHome Finanzierung',    ico:'🔍', base:3.58, typ:'Vermittler',        note:'Immobilien & Finanzierung kombiniert'},
+    {name:'HÜTTIG & ROMPF',            ico:'🔍', base:3.60, typ:'Vermittler',        note:'Unabhängige Finanzierungsberatung'},
+    {name:'Smava Baufinanzierung',      ico:'🔍', base:3.57, typ:'Vermittler',        note:'Online-Kreditvermittler mit Baufi-Fokus'},
+    // Hypothekenspezialisten
+    {name:'DSL Bank (Dt. Bank Gruppe)', ico:'🏠', base:3.65, typ:'Hypothekenbank',   note:'Baufinanzierungsspezialist der Deutschen Bank'},
+    {name:'Münchener Hypothekenbank',  ico:'🏠', base:3.68, typ:'Hypothekenbank',   note:'Genossenschaftliche Hypothekenbank'},
+    {name:'Deutsche Pfandbriefbank (pbb)',ico:'🏠',base:3.70,typ:'Hypothekenbank',  note:'Spezialist für gewerbliche Immobilien'},
+    {name:'Deutsche Hypothekenbank',   ico:'🏠', base:3.70, typ:'Hypothekenbank',   note:'Tochter der Norddeutschen Landesbank'},
+    {name:'Berlin Hyp',                ico:'🏠', base:3.72, typ:'Hypothekenbank',   note:'Immobilienfinanzierung & Pfandbriefe'},
+    {name:'Aareal Bank',               ico:'🏠', base:3.75, typ:'Hypothekenbank',   note:'Internationale Gewerbeimmobilien'},
+    {name:'Wüstenrot Bank',            ico:'🏠', base:3.75, typ:'Hypothekenbank',   note:'Baufinanzierungsspezialist (W&W Gruppe)'},
+    {name:'BHW Bausparkasse (Dt. Bank)',ico:'🏠',base:3.72, typ:'Hypothekenbank',   note:'Baufinanzierung & Bausparverträge'},
+    {name:'Süddeutsche Bodencreditbank',ico:'🏠',base:3.78, typ:'Hypothekenbank',   note:'Regionaler Hypothekenfinanzierer Bayern'},
+    // Direktbanken
+    {name:'ING Deutschland',           ico:'💻', base:3.62, typ:'Direktbank',        note:'Niederländische Direktbank, günstig & schnell'},
+    {name:'DKB Deutsche Kreditbank',   ico:'💻', base:3.67, typ:'Direktbank',        note:'Online-Bank der Bayern LB Gruppe'},
+    {name:'Postbank',                  ico:'💻', base:3.78, typ:'Direktbank',        note:'Filial- & Direktbank (Deutsche Bank Gruppe)'},
+    {name:'Santander Consumer Bank DE',ico:'💻', base:3.85, typ:'Direktbank',        note:'Spanische Großbank mit DE-Niederlassung'},
+    {name:'TARGOBANK',                 ico:'💻', base:3.90, typ:'Direktbank',        note:'Teil der Crédit Mutuel Gruppe (Frankreich)'},
+    {name:'Barclays Bank Ireland (DE)',ico:'💻', base:3.88, typ:'Direktbank',        note:'Britische Direktbank mit DE-Zulassung'},
+    {name:'norisbank',                 ico:'💻', base:3.95, typ:'Direktbank',        note:'Direktbank (Tochter Deutsche Bank)'},
+    {name:'comdirect (Commerzbank)',   ico:'💻', base:3.82, typ:'Direktbank',        note:'Online-Bank der Commerzbank Gruppe'},
+    // Bausparkassen
+    {name:'Schwäbisch Hall',           ico:'🏗️', base:3.65, typ:'Bausparkasse',      note:'Größte Bausparkasse DE (DZ Bank Gruppe)'},
+    {name:'LBS (Landesbausparkassen)', ico:'🏗️', base:3.72, typ:'Bausparkasse',      note:'8 regionale Sparkassen-Bausparkassen'},
+    {name:'Wüstenrot Bausparkasse',    ico:'🏗️', base:3.75, typ:'Bausparkasse',      note:'Teil der W&W Gruppe'},
+    {name:'Debeka Bausparkasse',       ico:'🏗️', base:3.76, typ:'Bausparkasse',      note:'Genossenschaftliche Bausparkasse Koblenz'},
+    {name:'Deutsche Bausparkasse Badenia',ico:'🏗️',base:3.78,typ:'Bausparkasse',   note:'Teil der Allianz Gruppe'},
+    {name:'Alte Leipziger Bausparkasse',ico:'🏗️',base:3.78, typ:'Bausparkasse',     note:'Teil der ALH Gruppe'},
+    {name:'Signal Iduna Bausparkasse', ico:'🏗️', base:3.80, typ:'Bausparkasse',     note:'Genossenschaftliche Versicherungsgruppe'},
+    {name:'Aachener Bausparkasse',     ico:'🏗️', base:3.82, typ:'Bausparkasse',     note:'Regionale Bausparkasse NRW'},
+    {name:'BKM Bausparkasse',          ico:'🏗️', base:3.85, typ:'Bausparkasse',     note:'Teil der Münchener Verein Gruppe'},
+    // Großbanken (privat)
+    {name:'Deutsche Bank',             ico:'🏛️', base:3.85, typ:'Großbank',          note:'Größte deutsche Privatbank'},
+    {name:'Commerzbank',               ico:'🏛️', base:3.83, typ:'Großbank',          note:'Filialbank bundesweit'},
+    {name:'HypoVereinsbank (UniCredit)',ico:'🏛️',base:3.80, typ:'Großbank',          note:'Teil des UniCredit Konzerns (Italien)'},
+    // Genossenschaftsbanken
+    {name:'DZ Privatbank (VR-Gruppe)', ico:'🤝', base:3.75, typ:'Genossenschaftsbank',note:'Zentralinstitut der Volksbanken'},
+    {name:'Volksbank / Raiffeisenbank',ico:'🤝', base:3.98, typ:'Genossenschaftsbank',note:'700+ regionale Genossenschaftsbanken'},
+    {name:'Sparda-Bank (regional)',    ico:'🤝', base:3.85, typ:'Genossenschaftsbank',note:'9 regionale Sparda-Banken'},
+    {name:'PSD Bank (regional)',       ico:'🤝', base:3.82, typ:'Genossenschaftsbank',note:'12 regionale PSD Banken'},
+    {name:'BBBank',                    ico:'🤝', base:3.88, typ:'Genossenschaftsbank',note:'Genossenschaftsbank für Beamte & ÖD'},
+    {name:'Münchner Bank eG',          ico:'🤝', base:3.92, typ:'Genossenschaftsbank',note:'Regionale Genossenschaftsbank München'},
+    {name:'Frankfurter Volksbank eG',  ico:'🤝', base:3.95, typ:'Genossenschaftsbank',note:'Größte Volksbank in Hessen'},
+    // Sparkassen
+    {name:'Sparkassen (regional)',     ico:'🔴', base:3.92, typ:'Sparkasse',          note:'360+ regionale Sparkassen bundesweit'},
+    {name:'Berliner Sparkasse',        ico:'🔴', base:3.90, typ:'Sparkasse',          note:'Größte Sparkasse Deutschlands (Helaba)'},
+    {name:'Hamburger Sparkasse (Haspa)',ico:'🔴',base:3.92, typ:'Sparkasse',          note:'Bedeutendste Sparkasse Norddeutschlands'},
+    {name:'Stadtsparkasse München',    ico:'🔴', base:3.88, typ:'Sparkasse',          note:'Größte bayerische Sparkasse'},
+    {name:'Sparkasse KölnBonn',        ico:'🔴', base:3.91, typ:'Sparkasse',          note:'Größte Sparkasse NRW'},
+    {name:'Nassauische Sparkasse (Naspa)',ico:'🔴',base:3.90,typ:'Sparkasse',         note:'Hessens größte Sparkasse'},
+    // Landesbanken (Großkunden & Retail über Töchter)
+    {name:'Bayern LB',                 ico:'🏦', base:3.75, typ:'Landesbank',         note:'Bayerische Landesbank (auch über DKB)'},
+    {name:'LBBW (Baden-Württemberg)',  ico:'🏦', base:3.78, typ:'Landesbank',         note:'Größte deutsche Landesbank'},
+    {name:'Helaba (Hessen-Thüringen)', ico:'🏦', base:3.80, typ:'Landesbank',         note:'Landesbank Hessen-Thüringen, Frankfurt'},
+    {name:'NordLB',                    ico:'🏦', base:3.82, typ:'Landesbank',         note:'Norddeutsche Landesbank'},
+    {name:'Landesbank Berlin (LBB)',   ico:'🏦', base:3.85, typ:'Landesbank',         note:'Träger der Berliner Sparkasse'},
+    // Auslandsbanken mit DE-Zulassung
+    {name:'BNP Paribas Personal Finance',ico:'🌍',base:3.88,typ:'Auslandsbank',       note:'Größte europäische Bank (Frankreich)'},
+    {name:'Crédit Agricole Consumer Finance',ico:'🌍',base:3.90,typ:'Auslandsbank',   note:'Französische Genossenschaftsbank'},
+    {name:'NIBC Bank Deutschland',     ico:'🌍', base:3.82, typ:'Auslandsbank',        note:'Niederländische Spezialbank'},
+    {name:'Hypothekenbank Frankfurt (Eurohypo)',ico:'🌍',base:3.72,typ:'Auslandsbank',note:'Teil der Crédit Agricole Gruppe'},
+    // Landesförderbanken – subventionierte Zinsen für geförderte Wohnbauvorhaben
+    {name:'WIBank (Hessen)',                    ico:'🟢', base:2.10, typ:'Förderbank (Land)', maxF:250000, note:'Hessen · Neubau, Modernisierung, Barrierefreiheit · Antrag über Hausbank'},
+    {name:'NRW.BANK',                           ico:'🟢', base:1.95, typ:'Förderbank (Land)', maxF:200000, note:'NRW · Wohnraumförderung Miet- & Eigentumsmaßnahmen · kombinierbar mit KfW'},
+    {name:'L-Bank (Baden-Württemberg)',         ico:'🟢', base:2.05, typ:'Förderbank (Land)', maxF:150000, note:'BW · Eigentumsförderung, Landeswohnraumförderung · Antrag über Hausbank'},
+    {name:'LfA Förderbank Bayern',              ico:'🟢', base:2.15, typ:'Förderbank (Land)', maxF:300000, note:'Bayern · BayernHeim & Wohnraumkredite · kombinierbar mit KfW'},
+    {name:'IBB (Investitionsbank Berlin)',       ico:'🟢', base:2.20, typ:'Förderbank (Land)', maxF:100000, note:'Berlin · IBB Wohnungsbau & Modernisierung · Angebot über Hausbank'},
+    {name:'IFB Hamburg',                        ico:'🟢', base:2.10, typ:'Förderbank (Land)', maxF:100000, note:'Hamburg · IFB Eigenheimförderung, Mietwohnungsbau · Hausbankenverfahren'},
+    {name:'IB.SH (Schleswig-Holstein)',         ico:'🟢', base:2.15, typ:'Förderbank (Land)', maxF:150000, note:'SH · Wohnraumförderung Sozial- & selbstgenutztes Eigentum'},
+    {name:'Bremer Aufbau-Bank (BAB)',           ico:'🟢', base:2.20, typ:'Förderbank (Land)', maxF:100000, note:'Bremen · Eigentumsförderung & Modernisierung · Hausbankenverfahren'},
+    {name:'NBank (Niedersachsen)',              ico:'🟢', base:2.05, typ:'Förderbank (Land)', maxF:150000, note:'Niedersachsen · Wohnraumförderung Neubau & Bestand'},
+    {name:'ILB (Brandenburg)',                  ico:'🟢', base:2.25, typ:'Förderbank (Land)', maxF:100000, note:'Brandenburg · Eigentumsförderung & Modernisierung · Hausbank'},
+    {name:'Investitionsbank Sachsen-Anhalt',    ico:'🟢', base:2.20, typ:'Förderbank (Land)', maxF:100000, note:'Sachsen-Anhalt · Wohnraumförderung Neubau & Sanierung'},
+    {name:'Thüringer Aufbaubank (TAB)',         ico:'🟢', base:2.15, typ:'Förderbank (Land)', maxF:100000, note:'Thüringen · TAB-Wohnraumförderprogramm, Modernisierung'},
+    {name:'Sächsische Aufbaubank (SAB)',        ico:'🟢', base:2.10, typ:'Förderbank (Land)', maxF:200000, note:'Sachsen · SAB-Wohnungsbau, Modernisierung, Barrierefreiheit'},
+    {name:'ISB (Rheinland-Pfalz)',              ico:'🟢', base:2.05, typ:'Förderbank (Land)', maxF:150000, note:'RLP · Wohnraumförderung Eigentum & Modernisierung'},
+    {name:'IB (Mecklenburg-Vorpommern)',        ico:'🟢', base:2.20, typ:'Förderbank (Land)', maxF:100000, note:'MV · Wohnraumförderung Selbstnutzung & Mietwohnungsbau'},
+    {name:'SIKB / Saarland',                    ico:'🟢', base:2.25, typ:'Förderbank (Land)', maxF:100000, note:'Saarland · Förderprogramme über Saarländische Investitionskreditbank'},
+  ];
+
+  const BANK_TYPES = ['Alle', 'Förderbank (Land)', 'Vermittler', 'Hypothekenbank', 'Direktbank', 'Bausparkasse', 'Großbank', 'Genossenschaftsbank', 'Sparkasse', 'Landesbank', 'Auslandsbank'];
+  const kvTyp = KV.typ || 'Alle';
+  const kvSearch = KV.search || '';
+  const BANKS = ALL_BANKS
+    .filter(b => (kvTyp === 'Alle' || b.typ === kvTyp) && (b.name.toLowerCase().includes(kvSearch.toLowerCase()) || b.typ.toLowerCase().includes(kvSearch.toLowerCase())))
+    .sort((a,b) => a.base - b.base);
+
+  // KfW-Programme (Stand 2025)
+  const KFW = [
+    {
+      id:'KfW 300', name:'Wohneigentum für Familien',
+      maxBetrag:500000, zins:2.90, laufzeit:25,
+      ico:'👨‍👩‍👧', color:'#15803d', bg:'#f0fdf4', border:'#bbf7d0',
+      bedingung:'Mindestens 1 Kind unter 18 Jahren im Haushalt',
+      zuschuss:'Tilgungszuschuss bis 37.500 € möglich',
+      possible: ekPct >= 10
+    },
+    {
+      id:'KfW 261', name:'Energieeffizient Bauen & Sanieren',
+      maxBetrag:150000, zins:2.45, laufzeit:20,
+      ico:'🌿', color:'#0891b2', bg:'#ecfeff', border:'#a5f3fc',
+      bedingung:'Neubau/Sanierung auf KfW-Effizienzhaus-Standard (z. B. EH 40/55/70)',
+      zuschuss:'Tilgungszuschuss bis 45 % der Darlehenssumme möglich',
+      possible: ekPct >= 10
+    },
+    {
+      id:'KfW 124', name:'Wohnraum Modernisieren',
+      maxBetrag:50000, zins:3.15, laufzeit:10,
+      ico:'🔧', color:'#7c3aed', bg:'#f5f3ff', border:'#ddd6fe',
+      bedingung:'Allgemeine Modernisierungsmaßnahmen ohne Effizienznachweis',
+      zuschuss:'Kein Tilgungszuschuss, aber günstiger Zinssatz',
+      possible: true
+    },
+  ];
+
+  // Eigenkapital-Status
+  const ekStatus = ekPct < 10 ? {col:'#dc2626',bg:'#fff5f5',icon:'❌',txt:'Zu wenig Eigenkapital – Banken vergeben i.d.R. keine Kredite unter 10 % EK'}
+    : ekPct < 20 ? {col:'#d97706',bg:'#fffbeb',icon:'⚠️',txt:'Minimales Eigenkapital – Zinsaufschlag und Risikoprämie zu erwarten. Empfehlung: mind. 20 % EK'}
+    : ekPct < 30 ? {col:'#0369a1',bg:'#eff6ff',icon:'✅',txt:'Gutes Eigenkapital – Solide Finanzierungsbasis. Für beste Konditionen ggf. auf 30 % erhöhen.'}
+    : {col:'#15803d',bg:'#f0fdf4',icon:'🌟',txt:'Ausgezeichnetes Eigenkapital – Beste Konditionen möglich. Banken vergeben günstigste Zinssätze.'};
+
+  const bestRate = BANKS.length > 0 ? annuitaet(kredit, BANKS[0].base + lzAdj + ltvAdj) : 0;
+  const bankRows = BANKS.map((b,i) => {
+    const z    = b.base + lzAdj + ltvAdj;
+    const rate = annuitaet(kredit, z);
+    const totalZinsen = rate * n - kredit;
+    const diff = rate - bestRate;
+    const isBest = i === 0;
+    const typColors = {'Förderbank (Land)':'#065f46',Vermittler:'#1d4ed8',Hypothekenbank:'#0891b2',Direktbank:'#7c3aed',Bausparkasse:'#d97706',Großbank:'#374151',Genossenschaftsbank:'#15803d',Sparkasse:'#dc2626',Landesbank:'#9333ea',Auslandsbank:'#0369a1'};
+    const typBgs    = {'Förderbank (Land)':'#d1fae5',Vermittler:'#dbeafe',Hypothekenbank:'#ecfeff',Direktbank:'#f5f3ff',Bausparkasse:'#fef3c7',Großbank:'#f1f5f9',Genossenschaftsbank:'#dcfce7',Sparkasse:'#fee2e2',Landesbank:'#fae8ff',Auslandsbank:'#e0f2fe'};
+    return `<tr style="${isBest?'background:#f0fdf4':i%2===0?'':'background:#fafafa'}">
+      <td style="padding:9px 12px">
+        <div style="font-weight:600;font-size:13px">${b.ico} ${b.name}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:1px">${b.note}</div>
+      </td>
+      <td style="padding:9px 12px;text-align:center">
+        <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:12px;background:${typBgs[b.typ]||'#f1f5f9'};color:${typColors[b.typ]||'#374151'}">${b.typ}</span>
+      </td>
+      <td style="padding:9px 12px;text-align:center">
+        <div style="font-weight:700;font-size:15px;color:${isBest?'#15803d':'#1d4ed8'}">${z.toFixed(2)} %</div>
+        ${isBest?'<div style="font-size:10px;color:#15803d;font-weight:600">Günstigster</div>':''}
+      </td>
+      <td style="padding:9px 12px;text-align:center">
+        ${b.typ==='Förderbank (Land)'
+          ? `<div style="font-size:13px;font-weight:800;color:#065f46">bis ${fmt(b.maxF)}</div><div style="font-size:10px;color:#059669;margin-top:1px">Förderbetrag</div>`
+          : `<div style="font-weight:700;font-size:14px">${kredit>0?fmt(Math.round(rate)):'–'}</div>`}
+      </td>
+      <td style="padding:9px 12px;text-align:center">
+        ${b.typ==='Förderbank (Land)'
+          ? `<div style="font-size:12px;font-weight:700;color:#065f46">${kredit>0?fmt(Math.round(annuitaet(Math.min(kredit,b.maxF), b.base+lzAdj))):'–'}</div><div style="font-size:10px;color:#94a3b8">bei max. Förderbetrag</div>`
+          : `<div style="text-align:center;color:#dc2626;font-size:13px">${kredit>0?fmt(Math.round(totalZinsen)):'–'}</div>`}
+      </td>
+      <td style="padding:9px 12px;text-align:center;font-size:12px;color:${diff>0?'#dc2626':'#15803d'}">${b.typ!=='Förderbank (Land)'&&kredit>0&&!isBest?'+'+fmt(Math.round(diff*n))+'/Laufzeit':b.typ==='Förderbank (Land)'?'<span class="bdg" style="background:#d1fae5;color:#065f46;font-size:10px">Förderung</span>':'–'}</td>
+    </tr>`;
+  }).join('');
+
+  const kfwCards = KFW.map(k => {
+    const kfwKredit = Math.min(kredit, k.maxBetrag);
+    const kfwRate   = annuitaet(kfwKredit, k.zins);
+    return `<div style="border:1px solid ${k.border};border-radius:10px;background:${k.bg};padding:14px;${!k.possible?'opacity:.5':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:${k.color}">${k.ico} ${k.id} – ${k.name}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px">Bis ${k.maxBetrag.toLocaleString('de-DE')} € · ${k.zins} % p.a. · ${k.laufzeit} Jahre</div>
+        </div>
+        <span class="bdg" style="background:${k.bg};color:${k.color};border:1px solid ${k.border}">${k.possible?'✅ Prüfbar':'⚠️ EK prüfen'}</span>
+      </div>
+      <div style="font-size:12px;color:#374151;margin-bottom:6px">📋 ${k.bedingung}</div>
+      <div style="font-size:12px;color:${k.color};font-weight:500;margin-bottom:8px">💰 ${k.zuschuss}</div>
+      ${kredit>0?`<div style="font-size:12px;color:#0f172a">→ Bei ${fmt(kfwKredit)} KfW-Darlehen: <strong>${fmt(Math.round(kfwRate))}/Monat</strong></div>`:''}
+    </div>`;
+  }).join('');
+
+  return `
+  <!-- Rechner -->
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin-bottom:14px">🧮 Finanzierungsrechner</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+      <div class="fld">
+        <label>Kaufpreis / Objektwert (€)</label>
+        <input type="number" step="10000" value="${kp}" oninput="kvUpdate('kp',this.value)" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;width:100%">
+      </div>
+      <div class="fld">
+        <label>Eigenkapital (€)</label>
+        <input type="number" step="5000" value="${ek}" oninput="kvUpdate('ek',this.value)" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;width:100%">
+      </div>
+      <div class="fld">
+        <label>Zinsbindung (Jahre)</label>
+        <select onchange="kvUpdate('lz',this.value)" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;width:100%">
+          ${[5,10,15,20,25,30].map(y=>`<option value="${y}"${lz===y?' selected':''}>${y} Jahre</option>`).join('')}
+        </select>
+      </div>
+      <div class="fld">
+        <label>Anfangstilgung p.a. (%)</label>
+        <input type="number" step="0.5" min="1" max="10" value="${tilg}" oninput="kvUpdate('tilg',this.value)" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;width:100%">
+      </div>
+    </div>
+
+    <!-- Ergebnis-Kacheln -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+      <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:11px;color:#64748b">Kreditsumme</div>
+        <div style="font-size:16px;font-weight:700;margin-top:3px">${fmt(kredit)}</div>
+      </div>
+      <div style="background:${ekStatus.bg};border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:11px;color:#64748b">Eigenkapital</div>
+        <div style="font-size:16px;font-weight:700;color:${ekStatus.col};margin-top:3px">${ekPct.toFixed(1)} %</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:11px;color:#64748b">Beleihungsauslauf (LTV)</div>
+        <div style="font-size:16px;font-weight:700;margin-top:3px">${ltv.toFixed(1)} %</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:11px;color:#64748b">Günstigste Rate (Richtwert)</div>
+        <div style="font-size:16px;font-weight:700;color:#1d4ed8;margin-top:3px">${kredit>0?fmt(Math.round(annuitaet(kredit, BANKS[0].base+lzAdj+ltvAdj))):'–'}</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:11px;color:#64748b">Mindest-EK empfohlen</div>
+        <div style="font-size:16px;font-weight:700;color:#15803d;margin-top:3px">${fmt(kp*0.20)}</div>
+        <div style="font-size:10px;color:#94a3b8">= 20 % von ${fmt(kp)}</div>
+      </div>
+    </div>
+
+    <!-- EK-Warnung -->
+    <div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:${ekStatus.bg};color:${ekStatus.col};font-size:12px;font-weight:500">
+      ${ekStatus.icon} ${ekStatus.txt}
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:#94a3b8">
+      ℹ️ Zinssätze sind Richtwerte (Stand: Mitte 2025). Laufzeit-Aufschlag: +${(lzAdj).toFixed(2)} % · LTV-Aufschlag: +${ltvAdj.toFixed(2)} %. Individuelle Angebote bei Ihrer Bank einholen.
+    </div>
+  </div>
+
+  <!-- Bankenvergleich -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+    <div style="background:#1e3a8a;color:#fff;padding:12px 16px;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+      <span>🏦 Bankenvergleich – ${BANKS.length} von ${ALL_BANKS.length} Instituten · ${lz} Jahre Zinsbindung</span>
+      <span style="font-size:11px;font-weight:400;opacity:.8">Sortiert nach Zinssatz (günstigste zuerst)</span>
+    </div>
+    <!-- Suche & Filter -->
+    <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input type="text" placeholder="🔎 Bank suchen …" value="${kvSearch}"
+        oninput="KV.search=this.value;render()"
+        style="padding:7px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;min-width:200px;outline:none">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${BANK_TYPES.map(t => `<button onclick="KV.typ='${t}';render()" style="padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${kvTyp===t?'#2563eb':'#d1d5db'};background:${kvTyp===t?'#2563eb':'#fff'};color:${kvTyp===t?'#fff':'#374151'};font-weight:${kvTyp===t?'600':'400'}">${t}</button>`).join('')}
+      </div>
+    </div>
+    <div style="max-height:420px;overflow-y:auto">
+      <table>
+        <thead><tr>
+          <th>Institut</th>
+          <th style="text-align:center">Typ</th>
+          <th style="text-align:center">Zinssatz p.a.</th>
+          <th style="text-align:center">Monatl. Rate / Förderbetrag</th>
+          <th style="text-align:center">Gesamtzinsen / Rate bei Förderung</th>
+          <th style="text-align:center">Mehrkosten / Kategorie</th>
+        </tr></thead>
+        <tbody>${bankRows}</tbody>
+      </table>
+    </div>
+    ${BANKS.length===0?'<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">Keine Banken gefunden – Suchbegriff oder Filter anpassen.</div>':''}
+    ${kvTyp==='Förderbank (Land)'||BANKS.some(b=>b.typ==='Förderbank (Land)')?`<div style="padding:10px 16px;background:#ecfdf5;border-top:1px solid #a7f3d0;font-size:11px;color:#065f46"><strong>🟢 Hinweis Landesförderbanken:</strong> Zinssätze sind Richtwerte für geförderte Wohnbauvorhaben. Förderung ist zweckgebunden (z. B. Erstwerwerb, Modernisierung, Barrierefreiheit, Energieeffizienz) und einkommensabhängig. Antrag immer <strong>über Ihre Hausbank</strong> vor Baubeginn/Kaufabschluss stellen. Kombinierbar mit KfW-Programmen.</div>`:''}
+  </div>
+
+  <!-- KfW -->
+  <div class="card" style="margin-bottom:0">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:22px">🟢</span>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#0f172a">KfW-Förderprogramme</div>
+        <div style="font-size:11px;color:#64748b">Kombinierbar mit Bankfinanzierung · Antrag über Ihre Hausbank</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${kfwCards}</div>
+    <div style="margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e">
+      ⚠️ <strong>Hinweis:</strong> KfW-Darlehen werden immer über eine Hausbank beantragt – nicht direkt bei der KfW. Der Antrag muss <strong>vor</strong> Beginn des Vorhabens gestellt werden. Aktuelle Konditionen unter <strong>kfw.de</strong>.
+    </div>
+  </div>`;
+}
+
+function renderBank() {
+  const totalSumme    = D.kredite.reduce((s,k)=>s+k.summe,0);
+  const totalRestschuld = D.kredite.reduce((s,k)=>s+k.restschuld,0);
+  const totalRate     = D.kredite.reduce((s,k)=>s+k.rate,0);
+
+  const cards = D.kredite.map(k => {
+    const tilgungJahr = k.summe * (k.tilgung/100);
+    const zinsenJahr  = k.restschuld * (k.zinsen/100);
+    const tilgungAnteil = k.rate > 0 ? ((k.rate - zinsenJahr/12) / k.rate * 100).toFixed(0) : 0;
+    const zinsenAnteil  = 100 - +tilgungAnteil;
+    const progress = k.summe > 0 ? ((k.summe - k.restschuld)/k.summe*100).toFixed(1) : 0;
+    return `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-weight:700;font-size:15px;color:#0f172a">${k.bank}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px">🏢 ${k.obj} · ${k.zweck}</div>
+        </div>
+        <span class="bdg g" style="font-size:12px">● Aktiv</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+        <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#64748b;margin-bottom:3px">Kreditsumme</div>
+          <div style="font-weight:700;font-size:14px;color:#0f172a">${fmt(k.summe)}</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#92400e;margin-bottom:3px">Restschuld</div>
+          <div style="font-weight:700;font-size:14px;color:#b45309">${fmt(k.restschuld)}</div>
+        </div>
+        <div style="background:#dcfce7;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#15803d;margin-bottom:3px">Tilgung p.a.</div>
+          <div style="font-weight:700;font-size:14px;color:#15803d">${k.tilgung} %</div>
+        </div>
+        <div style="background:#eff6ff;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#1d4ed8;margin-bottom:3px">Zinssatz p.a.</div>
+          <div style="font-weight:700;font-size:14px;color:#1d4ed8">${k.zinsen} %</div>
+        </div>
+      </div>
+
+      <!-- Monatliche Rate Aufschlüsselung -->
+      <div style="background:#f1f5f9;border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:12px;font-weight:600;color:#475569">Monatliche Rate</span>
+          <span style="font-size:18px;font-weight:700;color:#0f172a">${fmt(k.rate)}</span>
+        </div>
+        <div style="height:8px;border-radius:4px;overflow:hidden;background:#e2e8f0;display:flex;margin-bottom:6px">
+          <div style="background:#16a34a;width:${tilgungAnteil}%;transition:width .3s"></div>
+          <div style="background:#ef4444;width:${zinsenAnteil}%;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px">
+          <span style="color:#15803d">🟢 Tilgung ${fmt((k.rate*(+tilgungAnteil/100)))}/Monat (${tilgungAnteil}%)</span>
+          <span style="color:#dc2626">🔴 Zinsen ${fmt((k.rate*(zinsenAnteil/100)))}/Monat (${zinsenAnteil}%)</span>
+        </div>
+      </div>
+
+      <!-- Rückzahlungsfortschritt -->
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:4px">
+          <span>Abbezahlt</span><span>${progress} %</span>
+        </div>
+        <div style="height:6px;border-radius:3px;overflow:hidden;background:#e2e8f0">
+          <div style="background:#3b82f6;width:${progress}%;height:100%;border-radius:3px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;margin-top:2px">
+          <span>Start: ${k.startdatum}</span>
+          <span>Laufzeit: ${k.laufzeit} Jahre</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;padding-top:10px;border-top:1px solid #f1f5f9">
+        <button class="btn-s" style="font-size:11px" onclick="openEditKredit(${k.id})">✏️ Bearbeiten</button>
+        <button class="btn-s" style="font-size:11px;color:#ef4444;border-color:#fecaca" onclick="if(confirm('Kredit löschen?')){D.kredite=D.kredite.filter(x=>x.id!==${k.id});render()}">🗑 Löschen</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const tabHtml = bankTab === 'vergleich' ? renderBankVergleich() : `
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px">
+    <div class="kpi"><span style="font-size:22px">🏦</span><div><div class="kv" style="font-size:14px">${fmt(totalSumme)}</div><div class="kl">Gesamtvolumen</div></div></div>
+    <div class="kpi"><span style="font-size:22px">⚠️</span><div><div class="kv" style="font-size:14px;color:#b45309">${fmt(totalRestschuld)}</div><div class="kl">Gesamtrestschuld</div></div></div>
+    <div class="kpi"><span style="font-size:22px">💶</span><div><div class="kv" style="font-size:14px;color:#dc2626">${fmt(totalRate)}</div><div class="kl">Mtl. Belastung gesamt</div></div></div>
+    <div class="kpi"><span style="font-size:22px">📉</span><div><div class="kv" style="font-size:14px;color:#16a34a">${fmt(totalSumme-totalRestschuld)}</div><div class="kl">Bereits getilgt</div></div></div>
+  </div>
+
+  ${cards}`;
+
+  return `<div class="hdr">
+    <div><h1>Bank / Kredite</h1><p class="sub">${D.kredite.length} Kredite · Finanzierungsübersicht</p></div>
+    ${bankTab==='kredite'?'<button class="btn-p" onclick="openNewKredit()">+ Kredit anlegen</button>':''}
+  </div>
+  <div class="tabs">
+    <button class="tab ${bankTab==='kredite'?'on':''}" onclick="bankTab='kredite';render()">🏦 Meine Kredite</button>
+    <button class="tab ${bankTab==='vergleich'?'on':''}" onclick="bankTab='vergleich';render()">🔍 Kreditvergleich</button>
+  </div>
+  ${tabHtml}`;
+}
+
+const PAGE_FNS = {dash:renderDash,obj:renderObj,ein:renderEin,miet:renderMiet,fin:renderFin,zaeh:renderZaeh,nka:renderNka,dok:renderDok,komm:renderKomm,kost:renderKost,eig:renderEig,bank:renderBank};
+
+function render() {
+  document.getElementById('pages').innerHTML = `<div class="page on">${(PAGE_FNS[cur]||renderDash)()}</div>`;
+}
+
+// ─── Modal System ─────────────────────────────────────────────────────────
+let _moSaveFn = null;
+function openMo(title, bodyHtml, saveFn) {
+  document.getElementById('mo-title').textContent = title;
+  document.getElementById('mo-body').innerHTML = bodyHtml;
+  _moSaveFn = saveFn;
+  document.getElementById('mo').style.display = 'flex';
+}
+function closeMo() { document.getElementById('mo').style.display = 'none'; _moSaveFn = null; }
+function moSave() { if (_moSaveFn) _moSaveFn(); }
+function gv(id) { const e = document.getElementById(id); return e ? e.value : ''; }
+function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
+const today = () => new Date().toISOString().slice(0,10);
+
+const CATS_ALLOC = [
+  {v:'grundsteuer',l:'Grundsteuer'},{v:'heizung',l:'Heizungsanlage / Brennstoff'},
+  {v:'wasser',l:'Wasserversorgung / Warmwasser'},{v:'aufzug',l:'Aufzug'},
+  {v:'strassenreinigung',l:'Straßenreinigung'},{v:'muell',l:'Müllbeseitigung / Müllabfuhr'},
+  {v:'hauswart',l:'Hauswart / Hausmeister'},{v:'gartenpflege',l:'Gartenpflege / Grünpflege'},
+  {v:'versicherung',l:'Gebäude- & Haftpflichtversicherung'},{v:'allgstrom',l:'Allgemeinstrom / Beleuchtung'},
+  {v:'schornstein',l:'Schornsteinreinigung'},{v:'sonstige',l:'Sonstige Betriebskosten (§ 2 Nr. 17)'},
+];
+const CATS_NOT = [
+  {v:'instandhaltung',l:'Instandhaltung / Reparaturen'},{v:'verwaltung',l:'Hausverwaltungskosten'},
+  {v:'abschreibung',l:'Abschreibungen (AfA)'},{v:'fremdkapital',l:'Finanzierungskosten / Zinsen'},
+];
+const propOpts = () => D.props.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+const unitOpts = () => D.units.map(u=>`<option value="${u.name}">${u.name} (${u.prop})</option>`).join('');
+const tenantOpts = () => D.tenants.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');
+
+// ── Objekte ────────────────────────────────────────────────────────────────
+function _propForm(p={}) {
+  const sel = (opts, cur) => opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
+  return `
+    <div class="mo-2col">
+      <div class="fld"><label>Name</label><input id="pname" value="${p.name||''}" placeholder="z. B. Musterstraße 10"></div>
+      <div class="fld"><label>Typ</label><select id="ptype">${sel(['Mehrfamilienhaus','Einfamilienhaus','Eigentumswohnung','Gewerbe'],p.type)}</select></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Straße & Hausnummer</label><input id="paddr" value="${p.addr||''}" placeholder="Musterstraße 10"></div>
+      <div class="fld"><label>PLZ</label><input id="pzip" value="${p.zip||''}" placeholder="40213"></div>
+    </div>
+    <div class="fld"><label>Stadt</label><input id="pcity" value="${p.city||''}" placeholder="Düsseldorf"></div>
+    <div class="mo-2col">
+      <div class="fld"><label>Kaufpreis (€)</label><input id="pprice" type="number" value="${p.price||''}" placeholder="0"></div>
+      <div class="fld"><label>Gesamtfläche (m²)</label><input id="psqm" type="number" value="${p.sqm||''}" placeholder="0"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Grundstücksanteil (€)</label><input id="pland" type="number" value="${p.land||''}" placeholder="0"></div>
+      <div class="fld"><label>Gebäudeanteil (€)</label><input id="pbuilding" type="number" value="${p.building||''}" placeholder="0"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Gekauft am</label><input id="pkauf" type="date" value="${p.kaufdatum||''}"></div>
+      <div class="fld"><label>Eigentum überschrieben am</label><input id="ptransfer" type="date" value="${p.transferdatum||''}"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Bezahlt am</label><input id="ppayment" type="date" value="${p.paymentdatum||''}"></div>
+      <div class="fld"><label>Miteigentumsanteil (MEA)</label><input id="pmea" value="${p.mea||''}" placeholder="z. B. 250/1000"></div>
+    </div>`;
+}
+function _propData() {
+  const name = gv('pname'); if (!name) { alert('Bitte einen Namen eingeben.'); return null; }
+  return { name, type: gv('ptype'), addr: gv('paddr'), zip: gv('pzip'), city: gv('pcity'),
+    price: +gv('pprice'), sqm: +gv('psqm'), land: +gv('pland'), building: +gv('pbuilding'),
+    kaufdatum: gv('pkauf'), transferdatum: gv('ptransfer'), paymentdatum: gv('ppayment'), mea: gv('pmea') };
+}
+function openNewProp() {
+  openMo('Objekt anlegen', _propForm(), () => {
+    const d = _propData(); if (!d) return;
+    D.props.push({ id: nextId(D.props), units: 0, ...d });
+    closeMo(); render();
+  });
+}
+function openEditProp(id) {
+  const p = D.props.find(x=>x.id===id); if (!p) return;
+  openMo('Objekt bearbeiten', _propForm(p), () => {
+    const d = _propData(); if (!d) return;
+    Object.assign(p, d); closeMo(); render();
+  });
+}
+
+// ── Einheiten ──────────────────────────────────────────────────────────────
+function _unitForm(u={}) {
+  const sel = (arr,cur) => arr.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
+  return `
+    <div class="fld"><label>Objekt</label><select id="uprop">${D.props.map(p=>`<option${p.name===(u.prop||'')?' selected':''}>${p.name}</option>`).join('')}</select></div>
+    <div class="mo-2col">
+      <div class="fld"><label>Name</label><input id="uname" value="${u.name||''}" placeholder="z. B. Wohnung EG links"></div>
+      <div class="fld"><label>Typ</label><select id="utype">${sel(['Wohnung','Gewerberaum','Garage','Stellplatz'],u.type)}</select></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Fläche (m²)</label><input id="usqm" type="number" value="${u.sqm||''}" placeholder="0"></div>
+      <div class="fld"><label>Kaltmiete (€)</label><input id="urent" type="number" value="${u.rent||''}" placeholder="0"></div>
+    </div>`;
+}
+function openNewUnit() {
+  openMo('Einheit anlegen', _unitForm(), () => {
+    const name = gv('uname'); if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+    D.units.push({ id: nextId(D.units), prop: gv('uprop'), name, type: gv('utype'), sqm: +gv('usqm'), rent: +gv('urent'), tenant: null });
+    closeMo(); render();
+  });
+}
+function openEditUnit(id) {
+  const u = D.units.find(x=>x.id===id); if (!u) return;
+  openMo('Einheit bearbeiten', _unitForm(u), () => {
+    Object.assign(u, { prop: gv('uprop'), name: gv('uname'), type: gv('utype'), sqm: +gv('usqm'), rent: +gv('urent') });
+    closeMo(); render();
+  });
+}
+
+// ── Mieter ─────────────────────────────────────────────────────────────────
+function _tenantForm(t={}) {
+  const [fn='', ...rest] = (t.name||'').split(' '); const ln = rest.join(' ');
+  return `
+    <div class="mo-2col">
+      <div class="fld"><label>Vorname</label><input id="tfn" value="${fn}" placeholder="Maria"></div>
+      <div class="fld"><label>Nachname</label><input id="tln" value="${ln}" placeholder="Müller"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>E-Mail</label><input id="temail" type="email" value="${t.email||''}" placeholder="maria@email.de"></div>
+      <div class="fld"><label>Telefon</label><input id="tphone" value="${t.phone||''}" placeholder="0211 123456"></div>
+    </div>
+    <div class="fld"><label>Einheit</label><select id="tunit">
+      <option value="">– keine –</option>
+      ${D.units.map(u=>`<option${u.name===t.unit?' selected':''}>${u.name}</option>`).join('')}
+    </select></div>
+    <div class="mo-2col">
+      <div class="fld"><label>Kaltmiete (€)</label><input id="tkalt" type="number" value="${t.kalt||''}" placeholder="0"></div>
+      <div class="fld"><label>Nebenkosten-Vorauszahlung (€)</label><input id="tnk" type="number" value="${t.nk||''}" placeholder="0"></div>
+    </div>`;
+}
+function openNewTenant() {
+  openMo('Mieter anlegen', _tenantForm(), () => {
+    const fn=gv('tfn'), ln=gv('tln'); if (!fn||!ln) { alert('Bitte Vor- und Nachname eingeben.'); return; }
+    D.tenants.push({ id: nextId(D.tenants), name: fn+' '+ln, email: gv('temail'), phone: gv('tphone'), unit: gv('tunit'), kalt: +gv('tkalt'), nk: +gv('tnk') });
+    closeMo(); render();
+  });
+}
+function openEditTenant(id) {
+  const t = D.tenants.find(x=>x.id===id); if (!t) return;
+  openMo('Mieter bearbeiten', _tenantForm(t), () => {
+    Object.assign(t, { name: gv('tfn')+' '+gv('tln'), email: gv('temail'), phone: gv('tphone'), unit: gv('tunit'), kalt: +gv('tkalt'), nk: +gv('tnk') });
+    closeMo(); render();
+  });
+}
+
+// ── Finanzen ───────────────────────────────────────────────────────────────
+function openNewPayment() {
+  openMo('Zahlung erfassen', `
+    <div class="mo-2col">
+      <div class="fld"><label>Datum</label><input id="paydate" type="date" value="${today()}"></div>
+      <div class="fld"><label>Typ</label><select id="paytype"><option>Miete</option><option>Nebenkosten</option><option>Kaution</option><option>Nachzahlung</option></select></div>
+    </div>
+    <div class="fld"><label>Mieter</label><select id="paytenant">${tenantOpts()}</select></div>
+    <div class="fld"><label>Einheit</label><select id="payunit"><option value="">– keine –</option>${unitOpts()}</select></div>
+    <div class="fld"><label>Betrag (€)</label><input id="payamt" type="number" step="0.01" placeholder="0" min="0"></div>
+  `, () => {
+    D.payments.unshift({ id: nextId(D.payments), date: gv('paydate'), tenant: gv('paytenant'), unit: gv('payunit'), type: gv('paytype'), amount: +gv('payamt') });
+    closeMo(); render();
+  });
+}
+
+// ── Zählerstände ───────────────────────────────────────────────────────────
+function openNewZaehler() {
+  openMo('Zählerstand erfassen', `
+    <div class="fld"><label>Einheit</label><select id="zunit">${unitOpts()}</select></div>
+    <div class="mo-2col">
+      <div class="fld"><label>Typ</label><select id="ztyp"><option>Strom</option><option>Gas</option><option>Wasser kalt</option><option>Wasser warm</option><option>Heizung</option></select></div>
+      <div class="fld"><label>Datum</label><input id="zdate" type="date" value="${today()}"></div>
+    </div>
+    <div class="fld"><label>Zählerstand</label><input id="zwert" type="number" step="0.01" placeholder="0"></div>
+  `, () => {
+    D.zaehler.push({ id: nextId(D.zaehler), unit: gv('zunit'), typ: gv('ztyp'), date: gv('zdate'), wert: +gv('zwert') });
+    closeMo(); render();
+  });
+}
+
+// ── Kosten ─────────────────────────────────────────────────────────────────
+function _catOpts(selV='') {
+  return `<optgroup label="✅ Umlagefähig (§ 2 BetrKV)">${CATS_ALLOC.map(c=>`<option value="${c.v}|1"${selV===c.v?' selected':''}>${c.l}</option>`).join('')}</optgroup>`
+        +`<optgroup label="❌ Nicht umlagefähig">${CATS_NOT.map(c=>`<option value="${c.v}|0"${selV===c.v?' selected':''}>${c.l}</option>`).join('')}</optgroup>`;
+}
+function _costForm(c={}) {
+  return `
+    <div class="mo-2col">
+      <div class="fld"><label>Datum</label><input id="cdate" type="date" value="${c.date||today()}"></div>
+      <div class="fld"><label>Betrag (€)</label><input id="camt" type="number" step="0.01" value="${c.amount||''}" placeholder="0"></div>
+    </div>
+    <div class="fld"><label>Kostenart</label><select id="ccat">${_catOpts(c.cat)}</select></div>
+    <div class="fld"><label>Beschreibung</label><input id="cdesc" value="${c.desc||''}" placeholder="kurze Beschreibung"></div>
+    <div class="fld"><label>Objekt</label><select id="cobj">
+      <option value="">– alle Objekte –</option>
+      ${D.props.map(p=>`<option${p.name===c.obj?' selected':''}>${p.name}</option>`).join('')}
+    </select></div>`;
+}
+function _costData() {
+  const catRaw = gv('ccat'); const [v, allocStr] = catRaw.split('|');
+  const catObj = [...CATS_ALLOC,...CATS_NOT].find(x=>x.v===v);
+  return { date: gv('cdate'), amount: +gv('camt'), cat: v, label: catObj?.l||v, desc: gv('cdesc'), obj: gv('cobj'), alloc: allocStr==='1' };
+}
+function openNewCost() {
+  openMo('Kosten erfassen', _costForm(), () => {
+    D.costs.push({ id: nextId(D.costs), ..._costData() });
+    closeMo(); render();
+  });
+}
+function openEditCost(id) {
+  const c = D.costs.find(x=>x.id===id); if (!c) return;
+  openMo('Kosten bearbeiten', _costForm(c), () => {
+    Object.assign(c, _costData()); closeMo(); render();
+  });
+}
+
+// ── Eigentümer ─────────────────────────────────────────────────────────────
+function _eigForm(o={}) {
+  const sel = (arr,cur) => arr.map(v=>`<option${v===cur?' selected':''}>${v}</option>`).join('');
+  return `
+    <div class="mo-2col">
+      <div class="fld"><label>Anrede</label><select id="esal">${sel(['Herr','Frau','Divers'],o.sal)}</select></div>
+      <div class="fld"><label>Rolle</label><input id="erole" value="${o.role||'Eigentümer'}" placeholder="Eigentümer"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Vorname</label><input id="efn" value="${o.fn||''}" placeholder="Max"></div>
+      <div class="fld"><label>Nachname</label><input id="eln" value="${o.ln||''}" placeholder="Mustermann"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>E-Mail</label><input id="eemail" type="email" value="${o.email||''}"></div>
+      <div class="fld"><label>Telefon</label><input id="ephone" value="${o.phone||''}"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Adresse</label><input id="eaddr" value="${o.address||''}"></div>
+      <div class="fld"><label>Stadt</label><input id="ecity" value="${o.city||''}"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>IBAN</label><input id="eiban" value="${o.iban||''}" placeholder="DE00 …"></div>
+      <div class="fld"><label>Steuernummer</label><input id="etax" value="${o.tax||''}"></div>
+    </div>
+    <div class="fld"><label>Eigentumsanteil (%)</label><input id="eshare" type="number" min="0" max="100" value="${o.share!=null?o.share:''}" placeholder="100"></div>`;
+}
+function openNewEig() {
+  if (D.owners.length>=10) { alert('Maximal 10 Eigentümer erlaubt.'); return; }
+  openMo('Eigentümer anlegen', _eigForm(), () => {
+    const fn=gv('efn'),ln=gv('eln'); if (!fn||!ln) { alert('Bitte Vor- und Nachname eingeben.'); return; }
+    D.owners.push({ id: nextId(D.owners), sal: gv('esal'), fn, ln, role: gv('erole'), email: gv('eemail'), phone: gv('ephone'), address: gv('eaddr'), zip:'', city: gv('ecity'), iban: gv('eiban'), tax: gv('etax'), share: +gv('eshare')||0 });
+    closeMo(); render();
+  });
+}
+function openEditEig(id) {
+  const o = D.owners.find(x=>x.id===id); if (!o) return;
+  openMo('Eigentümer bearbeiten', _eigForm(o), () => {
+    Object.assign(o, { sal: gv('esal'), fn: gv('efn'), ln: gv('eln'), role: gv('erole'), email: gv('eemail'), phone: gv('ephone'), address: gv('eaddr'), city: gv('ecity'), iban: gv('eiban'), tax: gv('etax'), share: +gv('eshare')||0 });
+    closeMo(); render();
+  });
+}
+
+// ── Kommunikation ──────────────────────────────────────────────────────────
+function openNewMsg() {
+  openMo('Nachricht erstellen', `
+    <div class="mo-2col">
+      <div class="fld"><label>Typ</label><select id="mtyp"><option>E-Mail</option><option>Brief</option><option>SMS</option></select></div>
+      <div class="fld"><label>Empfänger</label><select id="mempf">${tenantOpts()}</select></div>
+    </div>
+    <div class="fld"><label>Betreff</label><input id="mbetreff" placeholder="z. B. Nebenkostenabrechnung 2025"></div>
+    <div class="fld"><label>Nachricht</label><textarea id="mtext" rows="5" style="resize:vertical" placeholder="Sehr geehrte/r …"></textarea></div>
+  `, () => {
+    D.msgs.push({ id: nextId(D.msgs), typ: gv('mtyp'), empf: gv('mempf'), betreff: gv('mbetreff'), text: gv('mtext'), datum: today() });
+    closeMo(); selMsg=0; render();
+  });
+}
+
+// ── Bank / Kredite ─────────────────────────────────────────────────────────
+function _kreditForm(k={}) {
+  return `
+    <div class="fld"><label>Kreditinstitut / Bank</label><input id="kbank" value="${k.bank||''}" placeholder="z. B. Sparkasse Düsseldorf"></div>
+    <div class="fld"><label>Objekt / Zweck</label><select id="kobj">
+      <option value="">– allgemein –</option>
+      ${D.props.map(p=>`<option${p.name===k.obj?' selected':''}>${p.name}</option>`).join('')}
+    </select></div>
+    <div class="fld"><label>Verwendungszweck</label><input id="kzweck" value="${k.zweck||'Immobilienfinanzierung'}" placeholder="Immobilienfinanzierung"></div>
+    <div class="mo-2col">
+      <div class="fld"><label>Kreditsumme (€)</label><input id="ksumme" type="number" step="1000" value="${k.summe||''}" placeholder="0"></div>
+      <div class="fld"><label>Aktuelle Restschuld (€)</label><input id="krestschuld" type="number" step="100" value="${k.restschuld||''}" placeholder="0"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Tilgung p.a. (%)</label><input id="ktilgung" type="number" step="0.1" value="${k.tilgung||''}" placeholder="2.0"></div>
+      <div class="fld"><label>Zinssatz p.a. (%)</label><input id="kzinsen" type="number" step="0.01" value="${k.zinsen||''}" placeholder="3.5"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Monatliche Rate (€)</label><input id="krate" type="number" step="10" value="${k.rate||''}" placeholder="0"></div>
+      <div class="fld"><label>Laufzeit (Jahre)</label><input id="klaufzeit" type="number" step="1" value="${k.laufzeit||''}" placeholder="25"></div>
+    </div>
+    <div class="mo-2col">
+      <div class="fld"><label>Startdatum</label><input id="kstart" type="date" value="${k.startdatum||''}"></div>
+      <div class="fld"><label>Status</label><select id="kstatus">
+        <option${(k.status||'aktiv')==='aktiv'?' selected':''}>aktiv</option>
+        <option${k.status==='abgelöst'?' selected':''}>abgelöst</option>
+        <option${k.status==='beantragt'?' selected':''}>beantragt</option>
+      </select></div>
+    </div>`;
+}
+function _kreditData() {
+  const bank = gv('kbank'); if (!bank) { alert('Bitte Bank/Kreditinstitut eingeben.'); return null; }
+  return { bank, obj: gv('kobj'), zweck: gv('kzweck')||'Immobilienfinanzierung',
+    summe: +gv('ksumme'), restschuld: +gv('krestschuld'),
+    tilgung: +gv('ktilgung'), zinsen: +gv('kzinsen'),
+    rate: +gv('krate'), laufzeit: +gv('klaufzeit'),
+    startdatum: gv('kstart'), status: gv('kstatus') };
+}
+function openNewKredit() {
+  openMo('Kredit anlegen', _kreditForm(), () => {
+    const d = _kreditData(); if (!d) return;
+    D.kredite.push({ id: nextId(D.kredite), ...d });
+    closeMo(); render();
+  });
+}
+function openEditKredit(id) {
+  const k = D.kredite.find(x=>x.id===id); if (!k) return;
+  openMo('Kredit bearbeiten', _kreditForm(k), () => {
+    const d = _kreditData(); if (!d) return;
+    Object.assign(k, d); closeMo(); render();
+  });
+}
+
+// ── Nebenkostenabrechnung ──────────────────────────────────────────────────
+function openNewNka() {
+  openMo('Abrechnung anlegen', `
+    <div class="fld"><label>Objekt</label><select id="nkaobj">${propOpts()}</select></div>
+    <div class="mo-2col">
+      <div class="fld"><label>Abrechnungsjahr</label><input id="nkajahr" type="number" value="${new Date().getFullYear()-1}" min="2000" max="2099"></div>
+      <div class="fld"><label>Status</label><select id="nkastatus"><option value="draft">Entwurf</option><option value="sent">Verschickt</option><option value="finalized">Abgeschlossen</option></select></div>
+    </div>
+  `, () => {
+    D.nka.push({ id: nextId(D.nka), obj: gv('nkaobj'), jahr: +gv('nkajahr'), status: gv('nkastatus'), heiz:0, wasser:0, inst:0, vers:0 });
+    closeMo(); render();
+  });
+}
+
+// Build nav
+const navEl = document.getElementById('nav');
+navEl.innerHTML = NAV.map(n =>
+  `<button class="nb${n.id===cur?' on':''}" data-id="${n.id}" onclick="navigate('${n.id}')"><span class="ico">${n.ico}</span>${n.lbl}</button>`
+).join('');
+
+render();
+</script>
+<div id="mo" style="display:none" class="mo" onclick="if(event.target===this)closeMo()">
+  <div class="mo-box">
+    <div class="mo-head">
+      <h2 id="mo-title">–</h2>
+      <button onclick="closeMo()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;line-height:1;padding:0">✕</button>
+    </div>
+    <div id="mo-body" class="mo-body"></div>
+    <div class="mo-foot">
+      <button class="btn-s" onclick="closeMo()">Abbrechen</button>
+      <button class="btn-p" onclick="moSave()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

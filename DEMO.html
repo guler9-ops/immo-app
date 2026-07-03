@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ImmoApp – Demo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/Recharts.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: { colors: { primary: { 600: '#2563eb', 700: '#1d4ed8' } } } }
+}
+</script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:1rem; }
+  .modal { background:#fff;border-radius:1rem;box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:560px;max-height:90vh;overflow-y:auto; }
+  tr:hover td { background:#f9fafb; }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:#f1f1f1; }
+  ::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:3px; }
+</style>
+</head>
+<body class="bg-gray-50">
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } = Recharts;
+
+// ─── MOCK DATA ────────────────────────────────────────────────────
+const MOCK = {
+  properties: [
+    { id:1, name:'Musterstraße 10', address:'Musterstraße 10', city:'Düsseldorf', zip:'40210', type:'Mehrfamilienhaus', purchase_price:480000, purchase_date:'2018-03-15', unit_count:4, notes:'' },
+    { id:2, name:'Gartenweg 3', address:'Gartenweg 3', city:'Köln', zip:'50667', type:'Einfamilienhaus', purchase_price:320000, purchase_date:'2020-06-01', unit_count:1, notes:'' },
+    { id:3, name:'Industriepark 7', address:'Industriepark 7', city:'Düsseldorf', zip:'40215', type:'Gewerbe', purchase_price:650000, purchase_date:'2021-11-20', unit_count:2, notes:'' },
+  ],
+  units: [
+    { id:1, property_id:1, property_name:'Musterstraße 10', name:'Wohnung EG links', type:'Wohnung', floor:0, size_sqm:72, rooms:3, rent_cold:780, rent_utilities:180, tenant_name:'Maria Müller', lease_status:'active' },
+    { id:2, property_id:1, property_name:'Musterstraße 10', name:'Wohnung EG rechts', type:'Wohnung', floor:0, size_sqm:68, rooms:2.5, rent_cold:720, rent_utilities:160, tenant_name:'Thomas Schmidt', lease_status:'active' },
+    { id:3, property_id:1, property_name:'Musterstraße 10', name:'Wohnung 1. OG', type:'Wohnung', floor:1, size_sqm:85, rooms:4, rent_cold:920, rent_utilities:200, tenant_name:null, lease_status:null },
+    { id:4, property_id:1, property_name:'Musterstraße 10', name:'Stellplatz 1', type:'Stellplatz', floor:0, size_sqm:14, rooms:null, rent_cold:60, rent_utilities:0, tenant_name:'Maria Müller', lease_status:'active' },
+    { id:5, property_id:2, property_name:'Gartenweg 3', name:'Gesamthaus', type:'Wohnung', floor:0, size_sqm:140, rooms:5, rent_cold:1450, rent_utilities:250, tenant_name:'Familie Becker', lease_status:'active' },
+    { id:6, property_id:3, property_name:'Industriepark 7', name:'Büro A', type:'Gewerberaum', floor:1, size_sqm:120, rooms:null, rent_cold:1800, rent_utilities:350, tenant_name:'TechGmbH', lease_status:'active' },
+    { id:7, property_id:3, property_name:'Industriepark 7', name:'Lager B', type:'Lager', floor:0, size_sqm:80, rooms:null, rent_cold:600, rent_utilities:80, tenant_name:null, lease_status:null },
+  ],
+  tenants: [
+    { id:1, first_name:'Maria', last_name:'Müller', email:'maria.mueller@email.de', phone:'0211 123456', birth_date:'1985-04-12', active_leases:2, units:'Wohnung EG links, Stellplatz 1' },
+    { id:2, first_name:'Thomas', last_name:'Schmidt', email:'t.schmidt@gmail.com', phone:'0211 654321', birth_date:'1978-09-30', active_leases:1, units:'Wohnung EG rechts' },
+    { id:3, first_name:'Familie', last_name:'Becker', email:'becker@web.de', phone:'0221 998877', birth_date:'', active_leases:1, units:'Gesamthaus' },
+    { id:4, first_name:'TechGmbH', last_name:'(Gewerbe)', email:'office@techgmbh.de', phone:'0211 111222', birth_date:'', active_leases:1, units:'Büro A' },
+  ],
+  leases: [
+    { id:1, unit_id:1, tenant_id:1, tenant_name:'Maria Müller', unit_name:'Wohnung EG links', property_name:'Musterstraße 10', start_date:'2019-01-01', end_date:null, rent_cold:780, rent_utilities:180, deposit:2340, status:'active' },
+    { id:2, unit_id:2, tenant_id:2, tenant_name:'Thomas Schmidt', unit_name:'Wohnung EG rechts', property_name:'Musterstraße 10', start_date:'2020-04-01', end_date:null, rent_cold:720, rent_utilities:160, deposit:2160, status:'active' },
+    { id:3, unit_id:4, tenant_id:1, tenant_name:'Maria Müller', unit_name:'Stellplatz 1', property_name:'Musterstraße 10', start_date:'2019-01-01', end_date:null, rent_cold:60, rent_utilities:0, deposit:120, status:'active' },
+    { id:4, unit_id:5, tenant_id:3, tenant_name:'Familie Becker', unit_name:'Gesamthaus', property_name:'Gartenweg 3', start_date:'2021-07-01', end_date:null, rent_cold:1450, rent_utilities:250, deposit:4350, status:'active' },
+    { id:5, unit_id:6, tenant_id:4, tenant_name:'TechGmbH', unit_name:'Büro A', property_name:'Industriepark 7', start_date:'2022-01-01', end_date:'2026-12-31', rent_cold:1800, rent_utilities:350, deposit:6300, status:'active' },
+  ],
+  payments: [
+    { id:1, date:'2026-06-05', tenant_name:'Maria Müller', unit_name:'Wohnung EG links', type:'rent', description:'Miete Juni 2026', amount:780 },
+    { id:2, date:'2026-06-05', tenant_name:'Maria Müller', unit_name:'Stellplatz 1', type:'rent', description:'Miete Juni 2026', amount:60 },
+    { id:3, date:'2026-06-03', tenant_name:'Thomas Schmidt', unit_name:'Wohnung EG rechts', type:'rent', description:'Miete Juni 2026', amount:720 },
+    { id:4, date:'2026-06-01', tenant_name:'Familie Becker', unit_name:'Gesamthaus', type:'rent', description:'Miete Juni 2026', amount:1450 },
+    { id:5, date:'2026-06-02', tenant_name:'TechGmbH', unit_name:'Büro A', type:'rent', description:'Miete Juni 2026', amount:1800 },
+    { id:6, date:'2026-05-05', tenant_name:'Maria Müller', unit_name:'Wohnung EG links', type:'rent', description:'Miete Mai 2026', amount:780 },
+    { id:7, date:'2026-05-04', tenant_name:'Thomas Schmidt', unit_name:'Wohnung EG rechts', type:'rent', description:'Miete Mai 2026', amount:720 },
+    { id:8, date:'2026-05-01', tenant_name:'Familie Becker', unit_name:'Gesamthaus', type:'rent', description:'Miete Mai 2026', amount:1450 },
+    { id:9, date:'2026-05-02', tenant_name:'TechGmbH', unit_name:'Büro A', type:'rent', description:'Miete Mai 2026', amount:1800 },
+  ],
+  chartData: [
+    { month:'Jan', miete:4100 }, { month:'Feb', miete:4100 }, { month:'Mär', miete:4810 },
+    { month:'Apr', miete:4810 }, { month:'Mai', miete:4750 }, { month:'Jun', miete:4810 },
+  ],
+  meter_readings: [
+    { id:1, date:'2026-06-01', unit_name:'Wohnung EG links', property_name:'Musterstraße 10', type:'strom', value:12450 },
+    { id:2, date:'2026-06-01', unit_name:'Wohnung EG rechts', property_name:'Musterstraße 10', type:'strom', value:9812 },
+    { id:3, date:'2026-06-01', unit_name:'Wohnung EG links', property_name:'Musterstraße 10', type:'wasser_kalt', value:234.5 },
+    { id:4, date:'2026-03-01', unit_name:'Wohnung EG links', property_name:'Musterstraße 10', type:'strom', value:11980 },
+    { id:5, date:'2026-03-01', unit_name:'Wohnung EG rechts', property_name:'Musterstraße 10', type:'strom', value:9455 },
+    { id:6, date:'2026-06-01', unit_name:'Gesamthaus', property_name:'Gartenweg 3', type:'gas', value:8820 },
+    { id:7, date:'2026-06-01', unit_name:'Büro A', property_name:'Industriepark 7', type:'strom', value:31400 },
+  ],
+  utility_bills: [
+    { id:1, property_name:'Musterstraße 10', year:2025, period_from:'2025-01-01', period_to:'2025-12-31', total_heating:3200, total_water:1100, total_maintenance:800, total_insurance:600, total_other:300, status:'sent' },
+    { id:2, property_name:'Gartenweg 3', year:2025, period_from:'2025-01-01', period_to:'2025-12-31', total_heating:2100, total_water:520, total_maintenance:400, total_insurance:380, total_other:100, status:'finalized' },
+    { id:3, property_name:'Musterstraße 10', year:2026, period_from:'2026-01-01', period_to:'2026-12-31', total_heating:0, total_water:0, total_maintenance:0, total_insurance:600, total_other:0, status:'draft' },
+  ],
+  documents: [
+    { id:1, name:'Mietvertrag_Maria_Müller.pdf', category:'Mietvertrag', filename:'mietvertrag1.pdf', size:245000, created_at:'2019-01-01', notes:'' },
+    { id:2, name:'Nebenkostenabrechnung_2025.pdf', category:'Nebenkostenabrechnung', filename:'nka2025.pdf', size:182000, created_at:'2026-02-15', notes:'' },
+    { id:3, name:'Versicherungspolice_Musterstraße.pdf', category:'Versicherung', filename:'versicherung.pdf', size:512000, created_at:'2021-03-01', notes:'Gebäudeversicherung' },
+    { id:4, name:'Handwerkerrechnung_April.pdf', category:'Rechnung', filename:'rechnung1.pdf', size:98000, created_at:'2026-04-20', notes:'Sanitär-Reparatur' },
+    { id:5, name:'Übergabeprotokoll_EG_links.pdf', category:'Protokoll', filename:'protokoll1.pdf', size:320000, created_at:'2019-01-01', notes:'' },
+  ],
+  messages: [
+    { id:1, type:'email', subject:'Ankündigung Jahresabrechnung 2025', tenant_name:'Maria Müller', sent_at:'2026-02-01', content:'Sehr geehrte Frau Müller,\n\nhiermit übersenden wir Ihnen die Nebenkostenabrechnung für das Jahr 2025.\n\nMit freundlichen Grüßen\nIhr Vermieter' },
+    { id:2, type:'brief', subject:'Mieterhöhung zum 01.07.2026', tenant_name:'Thomas Schmidt', sent_at:'2026-05-15', content:'Sehr geehrter Herr Schmidt,\n\nmit diesem Schreiben teilen wir Ihnen mit, dass wir gemäß §558 BGB die Miete zum 01.07.2026 auf 780 € erhöhen werden.\n\nMit freundlichen Grüßen' },
+    { id:3, type:'sms', subject:'Erinnerung: Zählerstand', tenant_name:'Familie Becker', sent_at:'2026-06-01', content:'Guten Tag Familie Becker, bitte übermitteln Sie uns bis 05.06.2026 Ihren aktuellen Zählerstand. Danke!' },
+  ],
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────
+const fmt = (n) => new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR' }).format(n||0);
+const fmtSize = (b) => { if(!b) return '–'; if(b<1024*1024) return `${(b/1024).toFixed(0)} KB`; return `${(b/1024/1024).toFixed(1)} MB`; };
+const typeIcon = (n) => { const e=n?.split('.').pop()?.toLowerCase(); if(e==='pdf') return '📄'; if(['doc','docx'].includes(e)) return '📝'; if(['xls','xlsx'].includes(e)) return '📊'; return '📁'; };
+
+function Badge({color, children}) {
+  const classes = { green:'bg-green-100 text-green-800', yellow:'bg-yellow-100 text-yellow-800', red:'bg-red-100 text-red-800', blue:'bg-blue-100 text-blue-800', gray:'bg-gray-100 text-gray-700' };
+  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${classes[color]||classes.gray}`}>{children}</span>;
+}
+
+function Modal({title, onClose, children, footer}) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">✕</button>
+        </div>
+        <div className="p-5 space-y-3">{children}</div>
+        {footer && <div className="flex justify-end gap-2 p-5 border-t">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Input({label, ...props}) {
+  return <div><label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <input className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" {...props}/></div>;
+}
+function Select({label, children, ...props}) {
+  return <div><label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <select className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" {...props}>{children}</select></div>;
+}
+
+function BtnPrimary({children, ...p}) { return <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors" {...p}>{children}</button>; }
+function BtnSec({children, ...p}) { return <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors" {...p}>{children}</button>; }
+
+// ─── PAGES ───────────────────────────────────────────────────────
+
+function Dashboard() {
+  const totalRent = MOCK.leases.filter(l=>l.status==='active').reduce((s,l)=>s+l.rent_cold+l.rent_utilities,0);
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div><h1 className="text-2xl font-bold">Dashboard</h1><p className="text-gray-500 text-sm mt-1">Willkommen zurück! Hier ist deine Übersicht.</p></div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          {icon:'🏢',label:'Objekte',val:MOCK.properties.length,bg:'bg-blue-50'},
+          {icon:'🚪',label:'Einheiten',val:MOCK.units.length,bg:'bg-green-50'},
+          {icon:'👥',label:'Mieter',val:MOCK.tenants.length,bg:'bg-yellow-50'},
+          {icon:'💶',label:'Monatl. Miete',val:fmt(totalRent),bg:'bg-purple-50'},
+        ].map(({icon,label,val,bg})=>(
+          <div key={label} className={`${bg} rounded-xl p-5 flex items-center gap-4 border border-white shadow-sm`}>
+            <span className="text-3xl">{icon}</span>
+            <div><p className="text-2xl font-bold">{val}</p><p className="text-sm text-gray-600">{label}</p></div>
+          </div>
+        ))}
+      </div>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+          <h2 className="font-semibold mb-4">Einnahmen letzte 6 Monate</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={MOCK.chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+              <XAxis dataKey="month" tick={{fontSize:12}}/>
+              <YAxis tick={{fontSize:12}} tickFormatter={v=>`${v}€`}/>
+              <Tooltip formatter={v=>fmt(v)} labelFormatter={l=>`Monat: ${l}`}/>
+              <Bar dataKey="miete" name="Mieteinnahmen" fill="#3b82f6" radius={[4,4,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+          <h2 className="font-semibold mb-4">Letzte Zahlungen</h2>
+          <div className="space-y-3">
+            {MOCK.payments.slice(0,5).map(p=>(
+              <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <div><p className="font-medium text-sm">{p.tenant_name}</p><p className="text-xs text-gray-500">{p.unit_name} · {p.date}</p></div>
+                <span className="font-semibold text-green-600">{fmt(p.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+        <h2 className="font-semibold mb-4">Schnellzugriff</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[{icon:'🏢',label:'Objekt anlegen'},{icon:'👤',label:'Mieter anlegen'},{icon:'📄',label:'Vertrag anlegen'},{icon:'💶',label:'Zahlung erfassen'}].map(q=>(
+            <div key={q.label} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer text-center">
+              <span className="text-2xl">{q.icon}</span><span className="text-xs font-medium text-gray-700">{q.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Properties({data, setData}) {
+  const [modal, setModal] = useState(null);
+  const EMPTY = {name:'',address:'',city:'',zip:'',type:'Mehrfamilienhaus',purchase_price:'',purchase_date:'',notes:''};
+  const [form, setForm] = useState(EMPTY);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const save = () => {
+    if(modal==='create') setData(d=>({...d,properties:[...d.properties,{...form,id:Date.now(),unit_count:0}]}));
+    else setData(d=>({...d,properties:d.properties.map(p=>p.id===form.id?{...form}:p)}));
+    setModal(null);
+  };
+  const del = (id) => { if(confirm('Objekt löschen?')) setData(d=>({...d,properties:d.properties.filter(p=>p.id!==id)})); };
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Objekte</h1><p className="text-gray-500 text-sm mt-1">{data.properties.length} Objekte</p></div>
+        <BtnPrimary onClick={()=>{setForm(EMPTY);setModal('create');}}>+ Objekt anlegen</BtnPrimary>
+      </div>
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {data.properties.map(p=>(
+          <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-2">
+              <div><h3 className="font-semibold">{p.name}</h3><p className="text-sm text-gray-500">{p.type}</p></div>
+              <Badge color="blue">{p.unit_count} Einh.</Badge>
+            </div>
+            <p className="text-sm text-gray-600">{p.address}</p>
+            <p className="text-sm text-gray-600">{p.zip} {p.city}</p>
+            {p.purchase_price && <p className="text-sm text-gray-500 mt-2">Kaufpreis: {fmt(p.purchase_price)}</p>}
+            <div className="flex gap-2 mt-4">
+              <button className="text-xs text-blue-600 hover:underline px-2 py-1 border border-blue-200 rounded-lg hover:bg-blue-50" onClick={()=>{setForm({...p});setModal('edit');}}>Bearbeiten</button>
+              <button className="text-xs text-red-500 hover:underline px-2 py-1 border border-red-200 rounded-lg hover:bg-red-50" onClick={()=>del(p.id)}>Löschen</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {modal && (
+        <Modal title={modal==='create'?'Objekt anlegen':'Objekt bearbeiten'} onClose={()=>setModal(null)} footer={<><BtnSec onClick={()=>setModal(null)}>Abbrechen</BtnSec><BtnPrimary onClick={save}>Speichern</BtnPrimary></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Input label="Bezeichnung *" value={form.name} onChange={e=>set('name',e.target.value)}/></div>
+            <div className="col-span-2"><Input label="Straße & Nr. *" value={form.address} onChange={e=>set('address',e.target.value)}/></div>
+            <Input label="PLZ *" value={form.zip} onChange={e=>set('zip',e.target.value)}/>
+            <Input label="Stadt *" value={form.city} onChange={e=>set('city',e.target.value)}/>
+            <Select label="Typ" value={form.type} onChange={e=>set('type',e.target.value)}>
+              {['Mehrfamilienhaus','Einfamilienhaus','Wohnanlage','Gewerbe','Sonstiges'].map(t=><option key={t}>{t}</option>)}
+            </Select>
+            <Input label="Kaufpreis (€)" type="number" value={form.purchase_price} onChange={e=>set('purchase_price',e.target.value)}/>
+            <Input label="Kaufdatum" type="date" value={form.purchase_date} onChange={e=>set('purchase_date',e.target.value)}/>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Units({data, setData}) {
+  const [modal, setModal] = useState(null);
+  const [filter, setFilter] = useState('');
+  const EMPTY = {property_id:'',name:'',type:'Wohnung',floor:'',size_sqm:'',rooms:'',rent_cold:'',rent_utilities:'',notes:''};
+  const [form, setForm] = useState(EMPTY);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const filtered = filter ? data.units.filter(u=>u.property_id===Number(filter)) : data.units;
+
+  const save = () => {
+    const prop = data.properties.find(p=>p.id===Number(form.property_id));
+    if(modal==='create') setData(d=>({...d,units:[...d.units,{...form,id:Date.now(),property_name:prop?.name||'',tenant_name:null}]}));
+    else setData(d=>({...d,units:d.units.map(u=>u.id===form.id?{...form,property_name:prop?.name||u.property_name}:u)}));
+    setModal(null);
+  };
+  const del = (id) => { if(confirm('Einheit löschen?')) setData(d=>({...d,units:d.units.filter(u=>u.id!==id)})); };
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Einheiten</h1><p className="text-gray-500 text-sm mt-1">{filtered.length} Einheiten</p></div>
+        <div className="flex gap-3">
+          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white" value={filter} onChange={e=>setFilter(e.target.value)}>
+            <option value="">Alle Objekte</option>
+            {data.properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <BtnPrimary onClick={()=>{setForm(EMPTY);setModal('create');}}>+ Einheit anlegen</BtnPrimary>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50"><tr>
+            {['Einheit','Objekt','Typ','Größe','Mieter','Kaltmiete','Status',''].map(h=><th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {filtered.map(u=>(
+              <tr key={u.id} className="border-t border-gray-100">
+                <td className="px-4 py-3 font-medium">{u.name}</td>
+                <td className="px-4 py-3 text-gray-600">{u.property_name}</td>
+                <td className="px-4 py-3">{u.type}</td>
+                <td className="px-4 py-3">{u.size_sqm?`${u.size_sqm} m²`:'–'}</td>
+                <td className="px-4 py-3">{u.tenant_name||<span className="text-gray-400">Leer</span>}</td>
+                <td className="px-4 py-3">{fmt(u.rent_cold)}</td>
+                <td className="px-4 py-3">{u.tenant_name?<Badge color="green">Vermietet</Badge>:<Badge color="yellow">Leer</Badge>}</td>
+                <td className="px-4 py-3">
+                  <button className="text-blue-600 hover:underline text-xs mr-2" onClick={()=>{setForm({...u});setModal('edit');}}>Bearbeiten</button>
+                  <button className="text-red-500 hover:underline text-xs" onClick={()=>del(u.id)}>Löschen</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {modal && (
+        <Modal title={modal==='create'?'Einheit anlegen':'Einheit bearbeiten'} onClose={()=>setModal(null)} footer={<><BtnSec onClick={()=>setModal(null)}>Abbrechen</BtnSec><BtnPrimary onClick={save}>Speichern</BtnPrimary></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Select label="Objekt *" value={form.property_id} onChange={e=>set('property_id',e.target.value)}>
+              <option value="">Bitte wählen</option>
+              {data.properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select></div>
+            <Input label="Bezeichnung *" value={form.name} onChange={e=>set('name',e.target.value)}/>
+            <Select label="Typ" value={form.type} onChange={e=>set('type',e.target.value)}>
+              {['Wohnung','Gewerberaum','Stellplatz','Garage','Lager','Sonstiges'].map(t=><option key={t}>{t}</option>)}
+            </Select>
+            <Input label="Etage" type="number" value={form.floor} onChange={e=>set('floor',e.target.value)}/>
+            <Input label="Größe (m²)" type="number" value={form.size_sqm} onChange={e=>set('size_sqm',e.target.value)}/>
+            <Input label="Kaltmiete (€)" type="number" value={form.rent_cold} onChange={e=>set('rent_cold',e.target.value)}/>
+            <Input label="Nebenkosten (€)" type="number" value={form.rent_utilities} onChange={e=>set('rent_utilities',e.target.value)}/>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Tenants({data, setData}) {
+  const [modal, setModal] = useState(null);
+  const [search, setSearch] = useState('');
+  const EMPTY = {first_name:'',last_name:'',email:'',phone:'',birth_date:'',iban:'',notes:''};
+  const [form, setForm] = useState(EMPTY);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const filtered = data.tenants.filter(t=>!search||`${t.first_name} ${t.last_name} ${t.email}`.toLowerCase().includes(search.toLowerCase()));
+
+  const save = () => {
+    if(modal==='create') setData(d=>({...d,tenants:[...d.tenants,{...form,id:Date.now(),active_leases:0,units:''}]}));
+    else setData(d=>({...d,tenants:d.tenants.map(t=>t.id===form.id?{...form}:t)}));
+    setModal(null);
+  };
+  const del = (id) => { if(confirm('Mieter löschen?')) setData(d=>({...d,tenants:d.tenants.filter(t=>t.id!==id)})); };
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Mieter</h1><p className="text-gray-500 text-sm mt-1">{data.tenants.length} Mieter</p></div>
+        <div className="flex gap-3">
+          <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-44" placeholder="🔍 Suchen..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          <BtnPrimary onClick={()=>{setForm(EMPTY);setModal('create');}}>+ Mieter anlegen</BtnPrimary>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50"><tr>
+            {['Name','E-Mail','Telefon','Einheiten','Status',''].map(h=><th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {filtered.map(t=>(
+              <tr key={t.id} className="border-t border-gray-100">
+                <td className="px-4 py-3 font-medium">{t.first_name} {t.last_name}</td>
+                <td className="px-4 py-3 text-gray-600">{t.email||'–'}</td>
+                <td className="px-4 py-3 text-gray-600">{t.phone||'–'}</td>
+                <td className="px-4 py-3 text-gray-600">{t.units||'–'}</td>
+                <td className="px-4 py-3">{t.active_leases>0?<Badge color="green">Aktiv</Badge>:<Badge color="gray">Inaktiv</Badge>}</td>
+                <td className="px-4 py-3">
+                  <button className="text-blue-600 hover:underline text-xs mr-2" onClick={()=>{setForm({...t});setModal('edit');}}>Bearbeiten</button>
+                  <button className="text-red-500 hover:underline text-xs" onClick={()=>del(t.id)}>Löschen</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {modal && (
+        <Modal title={modal==='create'?'Mieter anlegen':'Mieter bearbeiten'} onClose={()=>setModal(null)} footer={<><BtnSec onClick={()=>setModal(null)}>Abbrechen</BtnSec><BtnPrimary onClick={save}>Speichern</BtnPrimary></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Vorname *" value={form.first_name} onChange={e=>set('first_name',e.target.value)}/>
+            <Input label="Nachname *" value={form.last_name} onChange={e=>set('last_name',e.target.value)}/>
+            <Input label="E-Mail" type="email" value={form.email} onChange={e=>set('email',e.target.value)}/>
+            <Input label="Telefon" value={form.phone} onChange={e=>set('phone',e.target.value)}/>
+            <Input label="Geburtsdatum" type="date" value={form.birth_date} onChange={e=>set('birth_date',e.target.value)}/>
+            <Input label="IBAN" value={form.iban||''} onChange={e=>set('iban',e.target.value)} placeholder="DE..."/>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Leases({data, setData}) {
+  const [modal, setModal] = useState(null);
+  const EMPTY = {unit_id:'',tenant_id:'',start_date:'',end_date:'',rent_cold:'',rent_utilities:'',deposit:'',status:'active',notes:''};
+  const [form, setForm] = useState(EMPTY);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const save = () => {
+    const unit = data.units.find(u=>u.id===Number(form.unit_id));
+    const tenant = data.tenants.find(t=>t.id===Number(form.tenant_id));
+    const row = {...form,id:Date.now(),unit_name:unit?.name||'',property_name:unit?.property_name||'',tenant_name:tenant?`${tenant.first_name} ${tenant.last_name}`:''};
+    if(modal==='create') setData(d=>({...d,leases:[...d.leases,row]}));
+    else setData(d=>({...d,leases:d.leases.map(l=>l.id===form.id?row:l)}));
+    setModal(null);
+  };
+  const del = (id) => { if(confirm('Mietvertrag löschen?')) setData(d=>({...d,leases:d.leases.filter(l=>l.id!==id)})); };
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Mietverträge</h1><p className="text-gray-500 text-sm mt-1">{data.leases.filter(l=>l.status==='active').length} aktive Verträge</p></div>
+        <BtnPrimary onClick={()=>{setForm(EMPTY);setModal('create');}}>+ Vertrag anlegen</BtnPrimary>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50"><tr>
+            {['Mieter','Einheit','Beginn','Ende','Kaltmiete','NK','Kaution','Status',''].map(h=><th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {data.leases.map(l=>(
+              <tr key={l.id} className="border-t border-gray-100">
+                <td className="px-4 py-3 font-medium">{l.tenant_name}</td>
+                <td className="px-4 py-3"><span className="text-sm">{l.unit_name}</span><span className="block text-xs text-gray-400">{l.property_name}</span></td>
+                <td className="px-4 py-3">{l.start_date}</td>
+                <td className="px-4 py-3">{l.end_date||<span className="text-gray-400">Unbefristet</span>}</td>
+                <td className="px-4 py-3">{fmt(l.rent_cold)}</td>
+                <td className="px-4 py-3">{fmt(l.rent_utilities)}</td>
+                <td className="px-4 py-3">{fmt(l.deposit)}</td>
+                <td className="px-4 py-3">{l.status==='active'?<Badge color="green">Aktiv</Badge>:<Badge color="gray">Beendet</Badge>}</td>
+                <td className="px-4 py-3">
+                  <button className="text-blue-600 hover:underline text-xs mr-2" onClick={()=>{setForm({...l});setModal('edit');}}>Bearbeiten</button>
+                  <button className="text-red-500 hover:underline text-xs" onClick={()=>del(l.id)}>Löschen</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {modal && (
+        <Modal title={modal==='create'?'Mietvertrag anlegen':'Mietvertrag bearbeiten'} onClose={()=>setModal(null)} footer={<><BtnSec onClick={()=>setModal(null)}>Abbrechen</BtnSec><BtnPrimary onClick={save}>Speichern</BtnPrimary></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Select label="Einheit *" value={form.unit_id} onChange={e=>set('unit_id',e.target.value)}>
+              <option value="">Bitte wählen</option>
+              {data.units.map(u=><option key={u.id} value={u.id}>{u.property_name} – {u.name}</option>)}
+            </Select></div>
+            <div className="col-span-2"><Select label="Mieter *" value={form.tenant_id} onChange={e=>set('tenant_id',e.target.value)}>
+              <option value="">Bitte wählen</option>
+              {data.tenants.map(t=><option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+            </Select></div>
+            <Input label="Beginn *" type="date" value={form.start_date} onChange={e=>set('start_date',e.target.value)}/>
+            <Input label="Ende (leer=unbefristet)" type="date" value={form.end_date} onChange={e=>set('end_date',e.target.value)}/>
+            <Input label="Kaltmiete (€) *" type="number" value={form.rent_cold} onChange={e=>set('rent_cold',e.target.value)}/>
+            <Input label="Nebenkosten (€)" type="number" value={form.rent_utilities} onChange={e=>set('rent_utilities',e.target.value)}/>
+            <Input label="Kaution (€)" type="number" value={form.deposit} onChange={e=>set('deposit',e.target.value)}/>
+            <Select label="Status" value={form.status} onChange={e=>set('status',e.target.value)}>
+              <option value="active">Aktiv</option><option value="ended">Beendet</option>
+            </Select>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Finances({data, setData}) {
+  const [modal, setModal] = useState(false);
+  const EMPTY = {lease_id:'',amount:'',type:'rent',date:new Date().toISOString().split('T')[0],description:'',status:'received'};
+  const [form, setForm] = useState(EMPTY);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const [tab, setTab] = useState('list');
+
+  const save = () => {
+    const lease = data.leases.find(l=>l.id===Number(form.lease_id));
+    setData(d=>({...d,payments:[{...form,id:Date.now(),tenant_name:lease?.tenant_name||'',unit_name:lease?.unit_name||''},...d.payments]}));
+    setModal(false);
+  };
+  const del = (id) => { if(confirm('Zahlung löschen?')) setData(d=>({...d,payments:d.payments.filter(p=>p.id!==id)})); };
+
+  const total = data.payments.reduce((s,p)=>s+Number(p.amount),0);
+  const typeColors = {rent:'blue',utilities:'green',deposit:'purple',other:'gray'};
+  const typeLabels = {rent:'Miete',utilities:'Nebenkosten',deposit:'Kaution',other:'Sonstiges'};
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Finanzen & Mieteinnahmen</h1></div>
+        <BtnPrimary onClick={()=>{setForm(EMPTY);setModal(true);}}>+ Zahlung erfassen</BtnPrimary>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          {label:'Einnahmen gesamt',val:fmt(total),color:'text-green-600'},
+          {label:'Zahlungen erfasst',val:data.payments.length,color:'text-blue-600'},
+          {label:'Ø pro Monat',val:fmt(total/6),color:'text-gray-700'},
+        ].map(s=>(
+          <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5 text-center shadow-sm">
+            <p className={`text-3xl font-bold ${s.color}`}>{s.val}</p>
+            <p className="text-sm text-gray-500 mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button onClick={()=>setTab('list')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab==='list'?'bg-blue-600 text-white':'bg-white border border-gray-300 text-gray-700'}`}>Liste</button>
+        <button onClick={()=>setTab('chart')} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab==='chart'?'bg-blue-600 text-white':'bg-white border border-gray-300 text-gray-700'}`}>Diagramm</button>
+      </div>
+      {tab==='chart' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+          <h2 className="font-semibold mb-4">Mieteinnahmen letzte 6 Monate</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={MOCK.chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+              <XAxis dataKey="month" tick={{fontSize:12}}/><YAxis tick={{fontSize:12}} tickFormatter={v=>`${v}€`}/>
+              <Tooltip formatter={v=>fmt(v)}/>
+              <Bar dataKey="miete" name="Mieteinnahmen" fill="#3b82f6" radius={[4,4,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      {tab==='list' && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50"><tr>
+              {['Datum','Mieter','Einheit','Typ','Beschreibung','Betrag',''].map(h=><th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {data.payments.map(p=>(
+                <tr key={p.id} className="border-t border-gray-100">
+                  <td className="px-4 py-3">{p.date}</td>
+                  <td className="px-4 py-3 font-medium">{p.tenant_name}</td>
+                  <td className="px-4 py-3 text-gray-600">{p.unit_name}</td>
+                  <td className="px-4 py-3"><Badge color={typeColors[p.type]||'gray'}>{typeLabels[p.type]||p.type}</Badge></td>
+                  <td className="px-4 py-3 text-gray-600">{p.description||'–'}</td>
+                  <td className="px-4 py-3 font-semibold text-green-600">{fmt(p.amount)}</td>
+                  <td className="px-4 py-3"><button className="text-red-500 hover:underline text-xs" onClick={()=>del(p.id)}>Löschen</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {modal && (
+        <Modal title="Zahlung erfassen" onClose={()=>setModal(false)} footer={<><BtnSec onClick={()=>setModal(false)}>Abbrechen</BtnSec><BtnPrimary onClick={save}>Speichern</BtnPrimary></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Select label="Mietvertrag *" value={form.lease_id} onChange={e=>set('lease_id',e.target.value)}>
+              <option value="">Bitte wählen</option>
+              {data.leases.filter(l=>l.status==='active').map(l=><option key={l.id} value={l.id}>{l.tenant_name} – {l.unit_name}</option>)}
+            </Select></div>
+            <Input label="Datum *" type="date" value={form.date} onChange={e=>set('date',e.target.value)}/>
+            <Select label="Typ" value={form.type} onChange={e=>set('type',e.target.value)}>
+              <option value="rent">Miete</option><option value="utilities">Nebenkosten</option><option value="deposit">Kaution</option><option value="other">Sonstiges</option>
+            </Select>
+            <div className="col-span-2"><Input label="Betrag (€) *" type="number" step="0.01" value={form.amount} onChange={e=>set('amount',e.target.value)}/></div>
+            <div className="col-span-2"><Input label="Beschreibung" value={form.description} onChange={e=>set('description',e.target.value)} placeholder="z.B. Miete Juli 2026"/></div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function MeterReadings({data, setData}) {
+  const [modal, setModal] = useState(false);
+  const EMPTY = {unit_id:'',type:'strom',value:'',date:new Date().toISOString().split('T')[0],notes:''};
+  const [form, setForm] = useState(EMPTY);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const types = [{v:'strom',l:'⚡ Strom'},{v:'gas',l:'🔥 Gas'},{v:'wasser_kalt',l:'💧 Wasser kalt'},{v:'wasser_warm',l:'♨️ Wasser warm'},{v:'heizung',l:'🌡️ Heizung'}];
+  const typeLabel = v => types.find(t=>t.v===v)?.l||v;
+
+  const save = () => {
+    const unit = data.units.find(u=>u.id===Number(form.unit_id));
+    setData(d=>({...d,meter_readings:[{...form,id:Date.now(),value:Number(form.value),unit_name:unit?.name||'',property_name:unit?.property_name||''},...d.meter_readings]}));
+    setModal(false);
+  };
+  const del = (id) => { if(confirm('Zählerstand löschen?')) setData(d=>({...d,meter_readings:d.meter_readings.filter(r=>r.id!==id)})); };
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Zählerstände</h1><p className="text-gray-500 text-sm mt-1">{data.meter_readings.length} Ablesungen erfasst</p></div>
+        <BtnPrimary onClick={()=>{setForm(EMPTY);setModal(true);}}>+ Zählerstand erfassen</BtnPrimary>
+      </div>
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+        {types.map(t=>{
+          const count = [...new Set(data.meter_readings.filter(r=>r.type===t.v).map(r=>r.unit_id))].length;
+          return <div key={t.v} className="bg-white rounded-xl border border-gray-200 p-4 text-center shadow-sm">
+            <p className="text-2xl">{t.l.split(' ')[0]}</p>
+            <p className="text-xs font-medium text-gray-700 mt-1">{t.l.split(' ')[1]}</p>
+            <p className="text-xs text-gray-400">{count} Einh.</p>
+          </div>;
+        })}
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50"><tr>
+            {['Datum','Einheit','Objekt','Typ','Zählerstand','Notizen',''].map(h=><th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {data.meter_readings.map(r=>(
+              <tr key={r.id} className="border-t border-gray-100">
+                <td className="px-4 py-3">{r.date}</td>
+                <td className="px-4 py-3 font-medium">{r.unit_name}</td>
+                <td className="px-4 py-3 text-gray-600">{r.property_name}</td>
+                <td className="px-4 py-3">{typeLabel(r.type)}</td>
+                <td className="px-4 py-3 font-mono font-semibold">{r.value.toLocaleString('de-DE')}</td>
+                <td className="px-4 py-3 text-gray-500">{r.notes||'–'}</td>
+                <td className="px-4 py-3"><button className="text-red-500 hover:underline text-xs" onClick={()=>del(r.id)}>Löschen</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {modal && (
+        <Modal title="Zählerstand erfassen" onClose={()=>setModal(false)} footer={<><BtnSec onClick={()=>setModal(false)}>Abbrechen</BtnSec><BtnPrimary onClick={save}>Speichern</BtnPrimary></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Select label="Einheit *" value={form.unit_id} onChange={e=>set('unit_id',e.target.value)}>
+              <option value="">Bitte wählen</option>
+              {data.units.map(u=><option key={u.id} value={u.id}>{u.property_name} – {u.name}</option>)}
+            </Select></div>
+            <Select label="Typ *" value={form.type} onChange={e=>set('type',e.target.value)}>
+              {types.map(t=><option key={t.v} value={t.v}>{t.l}</option>)}
+            </Select>
+            <Input label="Datum *" type="date" value={form.date} onChange={e=>set('date',e.target.value)}/>
+            <div className="col-span-2"><Input label="Zählerstand *" type="number" step="0.001" value={form.value} onChange={e=>set('value',e.target.value)} placeholder="z.B. 12345.678"/></div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function UtilityBilling({data, setData}) {
+  const [modal, setModal] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const EMPTY = {property_id:'',year:2026,period_from:'2025-01-01',period_to:'2025-12-31',total_heating:'',total_water:'',total_maintenance:'',total_insurance:'',total_other:'',status:'draft',notes:''};
+  const [form, setForm] = useState(EMPTY);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const save = () => {
+    const prop = data.properties.find(p=>p.id===Number(form.property_id));
+    const row = {...form,id:Date.now(),property_name:prop?.name||''};
+    if(modal==='create') setData(d=>({...d,utility_bills:[row,...d.utility_bills]}));
+    else setData(d=>({...d,utility_bills:d.utility_bills.map(b=>b.id===form.id?row:b)}));
+    setModal(null);
+  };
+  const del = (id) => { if(confirm('Abrechnung löschen?')) setData(d=>({...d,utility_bills:d.utility_bills.filter(b=>b.id!==id)})); };
+
+  const total = (b) => [b.total_heating,b.total_water,b.total_maintenance,b.total_insurance,b.total_other].reduce((s,v)=>s+(Number(v)||0),0);
+  const statusColor = {draft:'yellow',sent:'blue',finalized:'green'};
+  const statusLabel = {draft:'Entwurf',sent:'Verschickt',finalized:'Abgeschlossen'};
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Nebenkostenabrechnung</h1><p className="text-gray-500 text-sm mt-1">Betriebskostenabrechnung auf Knopfdruck</p></div>
+        <BtnPrimary onClick={()=>{setForm(EMPTY);setModal('create');}}>+ Abrechnung anlegen</BtnPrimary>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50"><tr>
+            {['Objekt','Jahr','Zeitraum','Heizung','Wasser','Gesamt','Status',''].map(h=><th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {data.utility_bills.map(b=>(
+              <tr key={b.id} className="border-t border-gray-100">
+                <td className="px-4 py-3 font-medium">{b.property_name}</td>
+                <td className="px-4 py-3">{b.year}</td>
+                <td className="px-4 py-3 text-gray-600 text-xs">{b.period_from} – {b.period_to}</td>
+                <td className="px-4 py-3">{fmt(b.total_heating)}</td>
+                <td className="px-4 py-3">{fmt(b.total_water)}</td>
+                <td className="px-4 py-3 font-semibold">{fmt(total(b))}</td>
+                <td className="px-4 py-3"><Badge color={statusColor[b.status]}>{statusLabel[b.status]}</Badge></td>
+                <td className="px-4 py-3">
+                  <button className="text-green-600 hover:underline text-xs mr-2" onClick={()=>setDetail(b)}>Ansehen</button>
+                  <button className="text-blue-600 hover:underline text-xs mr-2" onClick={()=>{setForm({...b});setModal('edit');}}>Bearbeiten</button>
+                  <button className="text-red-500 hover:underline text-xs" onClick={()=>del(b.id)}>Löschen</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {modal && (
+        <Modal title={modal==='create'?'Abrechnung anlegen':'Abrechnung bearbeiten'} onClose={()=>setModal(null)} footer={<><BtnSec onClick={()=>setModal(null)}>Abbrechen</BtnSec><BtnPrimary onClick={save}>Speichern</BtnPrimary></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Select label="Objekt *" value={form.property_id} onChange={e=>set('property_id',e.target.value)}>
+              <option value="">Bitte wählen</option>
+              {data.properties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select></div>
+            <Input label="Jahr" type="number" value={form.year} onChange={e=>set('year',e.target.value)}/>
+            <Select label="Status" value={form.status} onChange={e=>set('status',e.target.value)}>
+              <option value="draft">Entwurf</option><option value="sent">Verschickt</option><option value="finalized">Abgeschlossen</option>
+            </Select>
+            <Input label="Von" type="date" value={form.period_from} onChange={e=>set('period_from',e.target.value)}/>
+            <Input label="Bis" type="date" value={form.period_to} onChange={e=>set('period_to',e.target.value)}/>
+            <Input label="Heizkosten (€)" type="number" value={form.total_heating} onChange={e=>set('total_heating',e.target.value)}/>
+            <Input label="Wasserkosten (€)" type="number" value={form.total_water} onChange={e=>set('total_water',e.target.value)}/>
+            <Input label="Instandhaltung (€)" type="number" value={form.total_maintenance} onChange={e=>set('total_maintenance',e.target.value)}/>
+            <Input label="Versicherung (€)" type="number" value={form.total_insurance} onChange={e=>set('total_insurance',e.target.value)}/>
+            <Input label="Sonstiges (€)" type="number" value={form.total_other} onChange={e=>set('total_other',e.target.value)}/>
+            <div className="flex items-end"><div className="bg-blue-50 rounded-lg px-4 py-2 w-full border border-blue-100">
+              <p className="text-xs text-blue-600">Gesamt</p>
+              <p className="text-lg font-bold text-blue-700">{fmt(['total_heating','total_water','total_maintenance','total_insurance','total_other'].reduce((s,k)=>s+(Number(form[k])||0),0))}</p>
+            </div></div>
+          </div>
+        </Modal>
+      )}
+      {detail && (
+        <Modal title={`Abrechnung ${detail.year} – ${detail.property_name}`} onClose={()=>setDetail(null)} footer={<BtnSec onClick={()=>setDetail(null)}>Schließen</BtnSec>}>
+          <p className="text-sm text-gray-500">Zeitraum: {detail.period_from} bis {detail.period_to}</p>
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            {[['Heizkosten',detail.total_heating],['Wasserkosten',detail.total_water],['Instandhaltung',detail.total_maintenance],['Versicherung',detail.total_insurance],['Sonstiges',detail.total_other]].filter(([,v])=>v>0).map(([l,v])=>(
+              <div key={l} className="flex justify-between text-sm"><span className="text-gray-600">{l}</span><span>{fmt(v)}</span></div>
+            ))}
+            <div className="flex justify-between font-bold border-t pt-2"><span>Gesamt</span><span>{fmt(total(detail))}</span></div>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-3 text-sm">
+            <p className="font-medium text-blue-800 mb-1">💡 Automatische Verteilung nach m²</p>
+            <p className="text-blue-600 text-xs">In der Vollversion wird der Betrag automatisch nach Wohnfläche auf alle Einheiten verteilt und die Nachzahlung/Guthaben je Mieter berechnet.</p>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Documents({data, setData}) {
+  const [catFilter, setCatFilter] = useState('');
+  const cats = ['Mietvertrag','Nebenkostenabrechnung','Korrespondenz','Versicherung','Rechnung','Protokoll','Sonstiges'];
+  const filtered = catFilter ? data.documents.filter(d=>d.category===catFilter) : data.documents;
+  const del = (id) => { if(confirm('Dokument löschen?')) setData(d=>({...d,documents:d.documents.filter(doc=>doc.id!==id)})); };
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Dokumente</h1><p className="text-gray-500 text-sm mt-1">{data.documents.length} Dokumente</p></div>
+        <BtnPrimary onClick={()=>alert('In der Demo nicht verfügbar.\nIn der Vollversion können echte Dateien hochgeladen werden.')}>+ Hochladen</BtnPrimary>
+      </div>
+      <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors" onClick={()=>alert('In der Demo nicht verfügbar.\nIn der Vollversion: PDF, Word, Excel, Bilder bis 10 MB.')}>
+        <p className="text-3xl mb-2">📤</p>
+        <p className="text-gray-500">Datei hierher ziehen oder klicken</p>
+        <p className="text-xs text-gray-400 mt-1">PDF, Word, Excel, Bilder – max. 10 MB</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={()=>setCatFilter('')} className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border ${!catFilter?'bg-blue-100 text-blue-800 border-blue-200':'bg-gray-100 text-gray-700 border-gray-200'}`}>Alle</button>
+        {cats.map(c=><button key={c} onClick={()=>setCatFilter(c)} className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border ${catFilter===c?'bg-blue-100 text-blue-800 border-blue-200':'bg-gray-100 text-gray-700 border-gray-200'}`}>{c}</button>)}
+      </div>
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filtered.map(d=>(
+          <div key={d.id} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">{typeIcon(d.filename)}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 truncate">{d.name}</p>
+                <p className="text-xs text-gray-500">{d.category} · {fmtSize(d.size)}</p>
+                <p className="text-xs text-gray-400">{d.created_at}</p>
+              </div>
+            </div>
+            {d.notes && <p className="text-sm text-gray-500 mt-2">{d.notes}</p>}
+            <div className="flex gap-2 mt-3">
+              <button className="flex-1 text-center text-xs text-gray-600 border border-gray-200 rounded-lg py-1.5 hover:bg-gray-50" onClick={()=>alert('In der Demo nicht verfügbar.\nIn der Vollversion: echte Datei herunterladen.')}>⬇️ Herunterladen</button>
+              <button className="text-xs text-red-600 border border-red-200 rounded-lg px-3 hover:bg-red-50" onClick={()=>del(d.id)}>Löschen</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Messages({data, setData}) {
+  const [modal, setModal] = useState(false);
+  const [selected, setSelected] = useState(data.messages[0]||null);
+  const EMPTY = {tenant_id:'',type:'email',subject:'',content:''};
+  const [form, setForm] = useState(EMPTY);
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  const typeIcon2 = t => ({email:'📧',brief:'✉️',sms:'📱',notiz:'📝'}[t]||'📨');
+  const typeLabel2 = t => ({email:'E-Mail',brief:'Brief',sms:'SMS',notiz:'Notiz'}[t]||t);
+
+  const templates = {
+    email:'Sehr geehrte/r [Mieter],\n\nhiermit möchten wir Sie über folgendes informieren:\n\n[Inhalt]\n\nMit freundlichen Grüßen\nIhr Vermieter',
+    brief:'[Ort], den [Datum]\n\nBetr.: [Betreff]\n\nSehr geehrte/r [Mieter],\n\n[Inhalt]\n\nMit freundlichen Grüßen\n\n[Unterschrift]',
+    sms:'Guten Tag [Mieter], [Inhalt]. Bei Fragen: [Telefon]',
+  };
+
+  const save = () => {
+    const tenant = data.tenants.find(t=>t.id===Number(form.tenant_id));
+    const row = {...form,id:Date.now(),tenant_name:tenant?`${tenant.first_name} ${tenant.last_name}`:'Allgemein',sent_at:new Date().toISOString()};
+    setData(d=>({...d,messages:[row,...d.messages]}));
+    setSelected(row); setModal(false);
+  };
+  const del = (id) => { if(confirm('Nachricht löschen?')){ setData(d=>({...d,messages:d.messages.filter(m=>m.id!==id)})); if(selected?.id===id) setSelected(null); }};
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Kommunikation</h1><p className="text-gray-500 text-sm mt-1">Briefe, E-Mails & SMS an Mieter</p></div>
+        <BtnPrimary onClick={()=>{setForm(EMPTY);setModal(true);}}>+ Nachricht erstellen</BtnPrimary>
+      </div>
+      <div className="grid lg:grid-cols-3 gap-6" style={{minHeight:400}}>
+        <div className="lg:col-span-1 space-y-2">
+          {data.messages.length===0 && <div className="bg-white rounded-xl border p-8 text-center text-gray-400"><p className="text-3xl mb-2">✉️</p>Noch keine Nachrichten</div>}
+          {data.messages.map(m=>(
+            <div key={m.id} onClick={()=>setSelected(m)}
+              className={`bg-white rounded-xl border p-4 cursor-pointer hover:shadow-md transition-all ${selected?.id===m.id?'border-blue-400 bg-blue-50':''}`}>
+              <div className="flex items-start gap-2">
+                <span className="text-xl">{typeIcon2(m.type)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{m.subject}</p>
+                  <p className="text-xs text-gray-500">{m.tenant_name}</p>
+                  <p className="text-xs text-gray-400">{m.sent_at?.split('T')[0]}</p>
+                </div>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">{typeLabel2(m.type)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="lg:col-span-2">
+          {selected ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 h-full shadow-sm">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold">{selected.subject}</h2>
+                  <p className="text-sm text-gray-500">{typeIcon2(selected.type)} {typeLabel2(selected.type)} · {selected.tenant_name} · {selected.sent_at?.split('T')[0]}</p>
+                </div>
+                <button onClick={()=>del(selected.id)} className="text-red-500 hover:underline text-sm">Löschen</button>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">{selected.content}</div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 flex items-center justify-center h-64 text-center shadow-sm">
+              <div><p className="text-4xl mb-3">📬</p><p className="text-gray-500">Wähle eine Nachricht aus</p></div>
+            </div>
+          )}
+        </div>
+      </div>
+      {modal && (
+        <Modal title="Nachricht erstellen" onClose={()=>setModal(false)} footer={<><BtnSec onClick={()=>setModal(false)}>Abbrechen</BtnSec><BtnPrimary onClick={save}>✉️ Speichern</BtnPrimary></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <Select label="Empfänger" value={form.tenant_id} onChange={e=>set('tenant_id',e.target.value)}>
+              <option value="">Alle / Allgemein</option>
+              {data.tenants.map(t=><option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+            </Select>
+            <Select label="Art" value={form.type} onChange={e=>set('type',e.target.value)}>
+              <option value="email">📧 E-Mail</option><option value="brief">✉️ Brief</option><option value="sms">📱 SMS</option><option value="notiz">📝 Notiz</option>
+            </Select>
+            <div className="col-span-2"><Input label="Betreff *" value={form.subject} onChange={e=>set('subject',e.target.value)}/></div>
+            <div className="col-span-2">
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-sm font-medium text-gray-700">Inhalt *</label>
+                <button type="button" className="text-xs text-blue-600 hover:underline" onClick={()=>set('content',templates[form.type]||'')}>Vorlage einfügen</button>
+              </div>
+              <textarea className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" rows={7} value={form.content} onChange={e=>set('content',e.target.value)}/>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────
+const NAV = [
+  {id:'dashboard',icon:'📊',label:'Dashboard'},
+  {id:'objekte',icon:'🏢',label:'Objekte'},
+  {id:'einheiten',icon:'🚪',label:'Einheiten'},
+  {id:'mieter',icon:'👥',label:'Mieter'},
+  {id:'mietvertraege',icon:'📄',label:'Mietverträge'},
+  {id:'finanzen',icon:'💶',label:'Finanzen'},
+  {id:'zaehler',icon:'⚡',label:'Zählerstände'},
+  {id:'nebenkosten',icon:'🧾',label:'Nebenkosten'},
+  {id:'dokumente',icon:'📁',label:'Dokumente'},
+  {id:'kommunikation',icon:'✉️',label:'Kommunikation'},
+];
+
+function App() {
+  const [page, setPage] = useState('dashboard');
+  const [open, setOpen] = useState(true);
+  const [data, setData] = useState(MOCK);
+
+  const pages = {
+    dashboard: <Dashboard/>,
+    objekte: <Properties data={data} setData={setData}/>,
+    einheiten: <Units data={data} setData={setData}/>,
+    mieter: <Tenants data={data} setData={setData}/>,
+    mietvertraege: <Leases data={data} setData={setData}/>,
+    finanzen: <Finances data={data} setData={setData}/>,
+    zaehler: <MeterReadings data={data} setData={setData}/>,
+    nebenkosten: <UtilityBilling data={data} setData={setData}/>,
+    dokumente: <Documents data={data} setData={setData}/>,
+    kommunikation: <Messages data={data} setData={setData}/>,
+  };
+
+  return (
+    <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
+      {/* Sidebar */}
+      <aside style={{width:open?220:64,background:'#0f172a',color:'#fff',display:'flex',flexDirection:'column',transition:'width .2s',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,padding:'20px 16px',borderBottom:'1px solid #1e293b'}}>
+          <span style={{fontSize:24}}>🏠</span>
+          {open && <span style={{fontWeight:700,fontSize:17,letterSpacing:'-0.5px'}}>ImmoApp</span>}
+        </div>
+        <nav style={{flex:1,padding:'12px 8px',overflowY:'auto'}}>
+          {NAV.map(n=>(
+            <button key={n.id} onClick={()=>setPage(n.id)}
+              style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'10px 12px',borderRadius:8,marginBottom:2,border:'none',cursor:'pointer',textAlign:'left',background:page===n.id?'#2563eb':'transparent',color:page===n.id?'#fff':'#94a3b8',transition:'all .15s',fontSize:14}}>
+              <span style={{fontSize:18,flexShrink:0}}>{n.icon}</span>
+              {open && <span>{n.label}</span>}
+            </button>
+          ))}
+        </nav>
+        <button onClick={()=>setOpen(!open)}
+          style={{display:'flex',alignItems:'center',gap:8,padding:'16px',borderTop:'1px solid #1e293b',background:'none',border:'none',color:'#64748b',cursor:'pointer',fontSize:13}}>
+          <span>{open?'◀':'▶'}</span>{open&&<span>Einklappen</span>}
+        </button>
+      </aside>
+      {/* Content */}
+      <main style={{flex:1,overflowY:'auto'}}>
+        {/* Demo-Banner */}
+        <div style={{background:'#fef3c7',borderBottom:'1px solid #fcd34d',padding:'8px 24px',display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#92400e'}}>
+          <span>⚠️</span>
+          <span><strong>Demo-Version</strong> – Daten werden nur im Browser gespeichert und gehen beim Schließen verloren. Für echte Datenhaltung: Vollversion starten (STARTEN.md).</span>
+        </div>
+        {pages[page]}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
