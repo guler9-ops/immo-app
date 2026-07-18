@@ -179,4 +179,24 @@ try { db.exec(`ALTER TABLE properties ADD COLUMN total_sqm REAL`); } catch(e) {}
 try { db.exec(`ALTER TABLE properties ADD COLUMN mea TEXT`); } catch(e) {}
 try { db.exec(`ALTER TABLE units ADD COLUMN persons_count INTEGER DEFAULT 1`); } catch(e) {}
 
+// Kredite-Tabelle
+db.exec(`
+  CREATE TABLE IF NOT EXISTS kredite (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bank TEXT NOT NULL,
+    objekt TEXT,
+    zweck TEXT,
+    kreditsumme REAL NOT NULL,
+    restschuld REAL,
+    tilgung REAL,
+    zinsen REAL,
+    rate REAL,
+    startdatum TEXT,
+    laufzeit INTEGER,
+    status TEXT DEFAULT 'aktiv',
+    notizen TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+
 module.exports = db;

@@ -24,6 +24,7 @@ app.use('/api/utility-bills', require('./routes/utility_bills'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/costs', require('./routes/costs'));
 app.use('/api/owners', require('./routes/owners'));
+app.use('/api/kredite', require('./routes/kredite'));
 
 // Dashboard-Statistiken
 app.get('/api/dashboard', (req, res) => {

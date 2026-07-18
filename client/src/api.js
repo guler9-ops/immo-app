@@ -85,6 +85,12 @@ export const api = {
   updateOwner: (id, data) => request(`/owners/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteOwner: (id) => request(`/owners/${id}`, { method: 'DELETE' }),
 
+  // Kredite
+  getKredite: () => request('/kredite'),
+  createKredit: (data) => request('/kredite', { method: 'POST', body: JSON.stringify(data) }),
+  updateKredit: (id, data) => request(`/kredite/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteKredit: (id) => request(`/kredite/${id}`, { method: 'DELETE' }),
+
   // Kosten
   getCosts: (params = {}) => {
     const q = new URLSearchParams(params).toString();

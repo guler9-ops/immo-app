@@ -12,6 +12,7 @@ import Documents from './pages/Documents'
 import Messages from './pages/Messages'
 import Costs from './pages/Costs'
 import Owners from './pages/Owners'
+import Bank from './pages/Bank'
 
 const NAV = [
   { to: '/', icon: '📊', label: 'Dashboard', end: true },
@@ -26,6 +27,7 @@ const NAV = [
   { to: '/kommunikation', icon: '✉️', label: 'Kommunikation' },
   { to: '/kosten', icon: '💸', label: 'Kosten' },
   { to: '/eigentuemer', icon: '👤', label: 'Eigentümer' },
+  { to: '/bank', icon: '🏦', label: 'Bank & Kredit' },
 ]
 
 export default function App() {
@@ -84,6 +86,7 @@ export default function App() {
           <Route path="/kommunikation" element={<Messages />} />
           <Route path="/kosten" element={<Costs />} />
           <Route path="/eigentuemer" element={<Owners />} />
+          <Route path="/bank" element={<Bank />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
