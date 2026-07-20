@@ -1,8 +1,17 @@
 const BASE = '/api';
 
+function getToken() {
+  return localStorage.getItem('immo_token');
+}
+
 async function request(path, options = {}) {
+  const token = getToken();
   const res = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers
+    },
     ...options,
   });
   if (!res.ok) {

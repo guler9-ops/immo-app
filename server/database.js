@@ -179,6 +179,39 @@ try { db.exec(`ALTER TABLE properties ADD COLUMN total_sqm REAL`); } catch(e) {}
 try { db.exec(`ALTER TABLE properties ADD COLUMN mea TEXT`); } catch(e) {}
 try { db.exec(`ALTER TABLE units ADD COLUMN persons_count INTEGER DEFAULT 1`); } catch(e) {}
 
+// Nutzer & Lizenzsystem
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT,
+    password_hash TEXT NOT NULL,
+    role TEXT DEFAULT 'customer',
+    license_expires_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS license_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE NOT NULL,
+    user_id INTEGER,
+    duration_months INTEGER DEFAULT 12,
+    used INTEGER DEFAULT 0,
+    used_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+`);
+
+// Standard-Admin anlegen falls noch nicht vorhanden
+const bcrypt = require('bcryptjs');
+const adminExists = db.prepare("SELECT id FROM users WHERE role='admin'").get();
+if (!adminExists) {
+  const hash = bcrypt.hashSync('ImmoAdmin2024!', 10);
+  db.prepare("INSERT INTO users (username, email, password_hash, role, license_expires_at) VALUES (?, ?, ?, 'admin', '2099-12-31')")
+    .run('admin', 'admin@immo-app.de', hash);
+}
+
 // Kredite-Tabelle
 db.exec(`
   CREATE TABLE IF NOT EXISTS kredite (

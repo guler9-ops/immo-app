@@ -7,27 +7,32 @@ require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const { requireAuth } = require('./middleware/auth');
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// API-Routen
-app.use('/api/properties', require('./routes/properties'));
-app.use('/api/units', require('./routes/units'));
-app.use('/api/tenants', require('./routes/tenants'));
-app.use('/api/leases', require('./routes/leases'));
-app.use('/api/payments', require('./routes/payments'));
-app.use('/api/meter-readings', require('./routes/meter_readings'));
-app.use('/api/documents', require('./routes/documents'));
-app.use('/api/utility-bills', require('./routes/utility_bills'));
-app.use('/api/messages', require('./routes/messages'));
-app.use('/api/costs', require('./routes/costs'));
-app.use('/api/owners', require('./routes/owners'));
-app.use('/api/kredite', require('./routes/kredite'));
+// Öffentliche Routen (kein Login nötig)
+app.use('/api/auth', require('./routes/auth'));
 
-// Dashboard-Statistiken
-app.get('/api/dashboard', (req, res) => {
+// Geschützte API-Routen (Login + gültige Lizenz erforderlich)
+app.use('/api/properties',    requireAuth, require('./routes/properties'));
+app.use('/api/units',         requireAuth, require('./routes/units'));
+app.use('/api/tenants',       requireAuth, require('./routes/tenants'));
+app.use('/api/leases',        requireAuth, require('./routes/leases'));
+app.use('/api/payments',      requireAuth, require('./routes/payments'));
+app.use('/api/meter-readings',requireAuth, require('./routes/meter_readings'));
+app.use('/api/documents',     requireAuth, require('./routes/documents'));
+app.use('/api/utility-bills', requireAuth, require('./routes/utility_bills'));
+app.use('/api/messages',      requireAuth, require('./routes/messages'));
+app.use('/api/costs',         requireAuth, require('./routes/costs'));
+app.use('/api/owners',        requireAuth, require('./routes/owners'));
+app.use('/api/kredite',       requireAuth, require('./routes/kredite'));
+app.use('/api/admin',         requireAuth, require('./routes/admin'));
+
+// Dashboard
+app.get('/api/dashboard', requireAuth, (req, res) => {
   const db = require('./database');
   const stats = {
     properties: db.prepare('SELECT COUNT(*) as count FROM properties').get().count,
@@ -67,7 +72,7 @@ app.get('/api/dashboard', (req, res) => {
   res.json(stats);
 });
 
-// Frontend ausliefern (nach dem Build)
+// Frontend ausliefern
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 const fs = require('fs');
 if (fs.existsSync(clientDist)) {
@@ -79,5 +84,5 @@ if (fs.existsSync(clientDist)) {
 
 app.listen(PORT, () => {
   console.log(`\n🏠 ImmoApp Server läuft auf http://localhost:${PORT}`);
-  console.log(`   API verfügbar unter http://localhost:${PORT}/api`);
+  console.log(`   API: http://localhost:${PORT}/api`);
 });
