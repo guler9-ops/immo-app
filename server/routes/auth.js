@@ -7,7 +7,7 @@ const { requireAuth, JWT_SECRET } = require('../middleware/auth');
 
 function makeToken(user) {
   return jwt.sign(
-    { id: user.id, username: user.username, role: user.role, license_expires_at: user.license_expires_at },
+    { id: user.id, username: user.username, role: user.role, plan: user.plan, license_expires_at: user.license_expires_at },
     JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -62,6 +62,42 @@ router.post('/activate', requireAuth, (req, res) => {
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
   const token = makeToken(updated);
   res.json({ token, user: updated, license_expires_at: newExpiry });
+});
+
+// Demo-Account anlegen (7 Tage)
+router.post('/demo', (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Gültige E-Mail erforderlich' });
+
+  // Prüfen ob bereits Demo mit dieser E-Mail
+  const existing = db.prepare('SELECT * FROM users WHERE email = ? AND plan = "demo"').get(email);
+  if (existing) {
+    // Einfach einloggen
+    const token = makeToken(existing);
+    const expired = new Date(existing.license_expires_at) < new Date();
+    return res.json({ token, user: existing, license_expired: expired });
+  }
+
+  // Username aus E-Mail ableiten (einzigartig machen)
+  const base = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 20);
+  let username = `demo_${base}`;
+  let counter = 1;
+  while (db.prepare('SELECT id FROM users WHERE username = ?').get(username)) {
+    username = `demo_${base}${counter++}`;
+  }
+
+  const expires = new Date();
+  expires.setDate(expires.getDate() + 7);
+  const license_expires_at = expires.toISOString().slice(0, 10);
+  const hash = bcrypt.hashSync(Math.random().toString(36).slice(2), 8);
+
+  const result = db.prepare(
+    "INSERT INTO users (username, email, password_hash, role, plan, license_expires_at) VALUES (?, ?, ?, 'customer', 'demo', ?)"
+  ).run(username, email, hash, license_expires_at);
+
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
+  const token = makeToken(user);
+  res.status(201).json({ token, user, license_expired: false, is_new: true });
 });
 
 module.exports = router;

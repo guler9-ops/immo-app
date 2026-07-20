@@ -45,6 +45,21 @@ export function AuthProvider({ children }) {
     setLicenseExpired(false)
   }
 
+  const startDemo = async (email) => {
+    const res = await fetch('/api/auth/demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Fehler')
+    localStorage.setItem('immo_token', data.token)
+    setToken(data.token)
+    setUser(data.user)
+    setLicenseExpired(data.license_expired || false)
+    return data
+  }
+
   const activateLicense = async (code) => {
     const res = await fetch('/api/auth/activate', {
       method: 'POST',
@@ -61,7 +76,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, licenseExpired, login, logout, activateLicense }}>
+    <AuthContext.Provider value={{ user, token, loading, licenseExpired, login, logout, activateLicense, startDemo }}>
       {children}
     </AuthContext.Provider>
   )

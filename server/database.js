@@ -178,6 +178,7 @@ try { db.exec(`ALTER TABLE properties ADD COLUMN building_share REAL`); } catch(
 try { db.exec(`ALTER TABLE properties ADD COLUMN total_sqm REAL`); } catch(e) {}
 try { db.exec(`ALTER TABLE properties ADD COLUMN mea TEXT`); } catch(e) {}
 try { db.exec(`ALTER TABLE units ADD COLUMN persons_count INTEGER DEFAULT 1`); } catch(e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN plan TEXT DEFAULT 'paid'`); } catch(e) {}
 
 // Nutzer & Lizenzsystem
 db.exec(`
@@ -187,6 +188,7 @@ db.exec(`
     email TEXT,
     password_hash TEXT NOT NULL,
     role TEXT DEFAULT 'customer',
+    plan TEXT DEFAULT 'paid',
     license_expires_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
