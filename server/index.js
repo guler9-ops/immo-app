@@ -14,6 +14,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Öffentliche Routen (kein Login nötig)
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', require('./routes/auth'));
 
 // Geschützte API-Routen (Login + gültige Lizenz erforderlich)
