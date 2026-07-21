@@ -4,7 +4,18 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState(() => localStorage.getItem('immo_token'))
+  const [token, setToken] = useState(() => {
+    // Token aus URL-Hash lesen (kommt von Landingpage nach Demo-Signup)
+    const hash = window.location.hash
+    const match = hash.match(/demo_token=([^&]+)/)
+    if (match) {
+      const t = decodeURIComponent(match[1])
+      localStorage.setItem('immo_token', t)
+      window.history.replaceState(null, '', window.location.pathname)
+      return t
+    }
+    return localStorage.getItem('immo_token')
+  })
   const [loading, setLoading] = useState(true)
   const [licenseExpired, setLicenseExpired] = useState(false)
 
