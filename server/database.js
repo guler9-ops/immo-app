@@ -205,13 +205,19 @@ db.exec(`
   );
 `);
 
-// Standard-Admin anlegen falls noch nicht vorhanden
+// Standard-Admin anlegen bzw. Passwort aus der Umgebungsvariable erzwingen.
+// SICHERHEIT: kein hartkodiertes Passwort mehr im (öffentlichen) Repo – das echte
+// Passwort steht ausschließlich in IMMO_ADMIN_PASSWORD (Railway-Variable).
 const bcrypt = require('bcryptjs');
-const adminExists = db.prepare("SELECT id FROM users WHERE role='admin'").get();
-if (!adminExists) {
-  const hash = bcrypt.hashSync('ImmoAdmin2024!', 10);
+const _adminPw = process.env.IMMO_ADMIN_PASSWORD || 'change-me-dev-only';
+const _adminRow = db.prepare("SELECT id FROM users WHERE role='admin'").get();
+if (!_adminRow) {
+  const hash = bcrypt.hashSync(_adminPw, 10);
   db.prepare("INSERT INTO users (username, email, password_hash, role, license_expires_at) VALUES (?, ?, ?, 'admin', '2099-12-31')")
     .run('admin', 'admin@immo-app.de', hash);
+} else if (process.env.IMMO_ADMIN_PASSWORD) {
+  // Rotation: gesetztes Env-Passwort beim Boot durchsetzen (überschreibt Altbestand)
+  db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(bcrypt.hashSync(_adminPw, 10), _adminRow.id);
 }
 
 // Kredite-Tabelle
