@@ -10,12 +10,16 @@ const PORT = process.env.PORT || 3001;
 const { requireAuth } = require('./middleware/auth');
 
 app.use(cors());
+// Stripe-Webhook braucht den ROHEN Body für die Signaturprüfung → VOR express.json mounten.
+const billing = require('./routes/billing');
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), billing.webhookHandler);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Öffentliche Routen (kein Login nötig)
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/billing', billing.router);   // /config, /checkout, /refresh (Auth intern, ohne Lizenz-Sperre)
 
 // Geschützte API-Routen (Login + gültige Lizenz erforderlich)
 app.use('/api/properties',    requireAuth, require('./routes/properties'));

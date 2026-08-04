@@ -86,8 +86,49 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  // Nach der Zahlung frisches Token mit verlängerter Lizenz holen (Webhook hat sie verlängert)
+  const refreshLicense = async () => {
+    const t = localStorage.getItem('immo_token')
+    if (!t) return
+    try {
+      const res = await fetch('/api/billing/refresh', { method: 'POST', headers: { Authorization: `Bearer ${t}` } })
+      if (!res.ok) return
+      const data = await res.json()
+      localStorage.setItem('immo_token', data.token)
+      setToken(data.token)
+      setUser(data.user)
+      setLicenseExpired(data.license_expired || false)
+    } catch (e) { /* ignore */ }
+  }
+
+  // Kauf starten: Stripe-Checkout (Einmalkauf). Fallback auf Kontakt-Mail, wenn nicht konfiguriert.
+  const buyLicense = async () => {
+    const t = localStorage.getItem('immo_token')
+    try {
+      const cfg = await fetch('/api/billing/config').then(r => r.json()).catch(() => ({}))
+      if (!cfg.enabled) {
+        window.location.href = 'mailto:info@immo-app.de?subject=AllDesk%20Immo%20Lizenz%20kaufen'
+        return
+      }
+      const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { Authorization: `Bearer ${t}` } })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else alert(data.error || 'Kauf konnte nicht gestartet werden.')
+    } catch (e) { alert('Server nicht erreichbar.') }
+  }
+
+  // Rücksprung von Stripe (?bezahlt=1) → Token auffrischen (mit kleinem Retry gegen Webhook-Race)
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    if (p.get('bezahlt') === '1') {
+      window.history.replaceState(null, '', window.location.pathname)
+      refreshLicense()
+      setTimeout(refreshLicense, 3000)
+    }
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, licenseExpired, login, logout, activateLicense, startDemo }}>
+    <AuthContext.Provider value={{ user, token, loading, licenseExpired, login, logout, activateLicense, startDemo, buyLicense, refreshLicense }}>
       {children}
     </AuthContext.Provider>
   )

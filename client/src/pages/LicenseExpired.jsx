@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 const BUY_URL = 'mailto:info@immo-app.de?subject=ImmoApp%20Lizenz%20kaufen'
 
 export default function LicenseExpired() {
-  const { user, activateLicense, logout } = useAuth()
+  const { user, activateLicense, logout, buyLicense } = useAuth()
   const isDemo = user?.plan === 'demo'
 
   const [code, setCode] = useState('')
@@ -59,10 +59,10 @@ export default function LicenseExpired() {
               </div>
             ) : (
               <>
-                <a href={BUY_URL}
+                <button onClick={buyLicense}
                   className="block w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl text-lg font-bold transition-colors mb-3">
                   🛒 Jetzt kaufen — Vollzugang sichern
-                </a>
+                </button>
 
                 {!showCode ? (
                   <button onClick={() => setShowCode(true)} className="text-sm text-blue-600 hover:underline mb-3 block w-full">
@@ -92,9 +92,14 @@ export default function LicenseExpired() {
             <div className="text-5xl mb-4">🔒</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Lizenz abgelaufen</h1>
             <p className="text-gray-500 text-sm mb-6">
-              Hallo <strong>{user?.username}</strong>, Ihre Lizenz ist abgelaufen.<br />
-              Bitte kontaktieren Sie ImmoApp um Ihre Lizenz zu verlängern.
+              Hallo <strong>{user?.username}</strong>, Ihre Lizenz ist abgelaufen.
             </p>
+            {!success && (
+              <button onClick={buyLicense}
+                className="block w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl text-lg font-bold transition-colors mb-4">
+                🛒 Jetzt kaufen — Lizenz verlängern
+              </button>
+            )}
 
             {success ? (
               <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-4 font-semibold">
