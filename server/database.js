@@ -9,6 +9,7 @@
 // In den Routen wird daher überall `await` verwendet.
 
 const path = require('path');
+const crypto = require('crypto');
 const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 
@@ -293,7 +294,9 @@ async function init() {
   }
 
   // Standard-Admin anlegen bzw. Passwort aus IMMO_ADMIN_PASSWORD durchsetzen.
-  const adminPw = process.env.IMMO_ADMIN_PASSWORD || 'change-me-dev-only';
+  // Kein hartkodiertes Passwort im Code: ist die Env-Variable nicht gesetzt, wird
+  // ein zufälliges (kryptografisch sicheres) Passwort erzeugt und einmalig geloggt.
+  const adminPw = process.env.IMMO_ADMIN_PASSWORD || crypto.randomBytes(18).toString('base64url');
   const adminRow = (await client.execute("SELECT id FROM users WHERE role='admin'")).rows[0];
   if (!adminRow) {
     const hash = bcrypt.hashSync(adminPw, 10);
@@ -301,6 +304,9 @@ async function init() {
       sql: "INSERT INTO users (username, email, password_hash, role, license_expires_at) VALUES ('admin', 'admin@immo-app.de', ?, 'admin', '2099-12-31')",
       args: [hash],
     });
+    if (!process.env.IMMO_ADMIN_PASSWORD) {
+      console.warn('⚠️  IMMO_ADMIN_PASSWORD nicht gesetzt – zufälliges Admin-Passwort erzeugt:', adminPw);
+    }
   } else if (process.env.IMMO_ADMIN_PASSWORD) {
     await client.execute({
       sql: 'UPDATE users SET password_hash=? WHERE id=?',

@@ -8,7 +8,13 @@ const { requireAuth } = require('./middleware/auth');
 
 const app = express();
 
-app.use(cors());
+// CORS bewusst NICHT permissiv (kein Wildcard '*'): Frontend und API teilen sich
+// dieselbe Origin (auf Vercel/Railway sowie via Vite-Proxy in der Entwicklung),
+// daher werden standardmäßig keine Cross-Origin-Header gesetzt. Bei Bedarf lassen
+// sich erlaubte Origins über CORS_ORIGIN oder APP_URL (kommagetrennt) freigeben.
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.APP_URL || '')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : { origin: false }));
 
 // Stripe-Webhook braucht den ROHEN Body für die Signaturprüfung → VOR express.json mounten.
 const billing = require('./routes/billing');
