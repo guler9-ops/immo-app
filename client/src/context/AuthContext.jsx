@@ -2,6 +2,17 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
 
+// Prüft, ob eine URL wirklich auf eine Stripe-Domain über HTTPS zeigt.
+// Verhindert Open-Redirect: es wird nur zu vertrauenswürdigen Zielen weitergeleitet.
+function isStripeUrl(url) {
+  try {
+    const u = new URL(url)
+    return u.protocol === 'https:' && (u.hostname === 'stripe.com' || u.hostname.endsWith('.stripe.com'))
+  } catch {
+    return false
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(() => {
@@ -112,7 +123,9 @@ export function AuthProvider({ children }) {
       }
       const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { Authorization: `Bearer ${t}` } })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
+      // Sicherheit: nur zu einer echten Stripe-URL weiterleiten (kein Open Redirect
+      // auf fremde Seiten, falls die Antwort manipuliert wäre).
+      if (data.url && isStripeUrl(data.url)) window.location.href = data.url
       else alert(data.error || 'Kauf konnte nicht gestartet werden.')
     } catch (e) { alert('Server nicht erreichbar.') }
   }
