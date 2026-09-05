@@ -6,6 +6,19 @@ const AuthContext = createContext(null)
 // Nur exakte, hartkodierte Stripe-HTTPS-Prefixe – kein dynamisches Ziel.
 const ALLOWED_REDIRECT_PREFIXES = ['https://checkout.stripe.com/', 'https://billing.stripe.com/']
 
+// Nur wohlgeformte JWTs (drei Base64url-Segmente) in den Browser-Speicher schreiben.
+// Validierung vor dem Persistieren verhindert, dass manipulierte/ungültige Werte
+// als Token gespeichert werden (Absicherung von Daten aus Antworten/URL).
+function isValidJwt(t) {
+  return typeof t === 'string' && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(t)
+}
+
+function storeToken(t) {
+  if (!isValidJwt(t)) return false
+  localStorage.setItem('immo_token', t)
+  return true
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(() => {
@@ -14,9 +27,10 @@ export function AuthProvider({ children }) {
     const match = hash.match(/demo_token=([^&]+)/)
     if (match) {
       const t = decodeURIComponent(match[1])
-      localStorage.setItem('immo_token', t)
-      window.history.replaceState(null, '', window.location.pathname)
-      return t
+      if (storeToken(t)) {
+        window.history.replaceState(null, '', window.location.pathname)
+        return t
+      }
     }
     return localStorage.getItem('immo_token')
   })
@@ -46,7 +60,7 @@ export function AuthProvider({ children }) {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Fehler')
-    localStorage.setItem('immo_token', data.token)
+    storeToken(data.token)
     setToken(data.token)
     setUser(data.user)
     setLicenseExpired(data.license_expired || false)
@@ -68,7 +82,7 @@ export function AuthProvider({ children }) {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Fehler')
-    localStorage.setItem('immo_token', data.token)
+    storeToken(data.token)
     setToken(data.token)
     setUser(data.user)
     setLicenseExpired(data.license_expired || false)
@@ -83,7 +97,7 @@ export function AuthProvider({ children }) {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Ungültiger Code')
-    localStorage.setItem('immo_token', data.token)
+    storeToken(data.token)
     setToken(data.token)
     setUser(data.user)
     setLicenseExpired(false)
@@ -98,7 +112,7 @@ export function AuthProvider({ children }) {
       const res = await fetch('/api/billing/refresh', { method: 'POST', headers: { Authorization: `Bearer ${t}` } })
       if (!res.ok) return
       const data = await res.json()
-      localStorage.setItem('immo_token', data.token)
+      storeToken(data.token)
       setToken(data.token)
       setUser(data.user)
       setLicenseExpired(data.license_expired || false)
