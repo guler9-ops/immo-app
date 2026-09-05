@@ -1,12 +1,72 @@
-const Database = require('better-sqlite3');
+// Datenbank-Layer auf Basis von libSQL / Turso.
+//
+// Lokal & auf Railway:   file:immo.db  (Standard, keine Env nötig)
+// Auf Vercel/Turso:      TURSO_DATABASE_URL + TURSO_AUTH_TOKEN setzen
+//
+// Der frühere Code nutzte better-sqlite3 SYNCHRON (db.prepare(sql).get()/.all()/.run()).
+// libSQL ist ASYNCHRON. Damit die Routen mit minimalem Umbau weiterlaufen, bildet dieser
+// Wrapper dieselbe API nach – nur geben get()/all()/run() jetzt Promises zurück.
+// In den Routen wird daher überall `await` verwendet.
+
 const path = require('path');
+const crypto = require('crypto');
+const { createClient } = require('@libsql/client');
+const bcrypt = require('bcryptjs');
 
-// Auf Railway: DB_PATH=/data/immo.db setzen + Volume unter /data mounten
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'immo.db');
-const db = new Database(dbPath);
+const url = process.env.TURSO_DATABASE_URL || ('file:' + path.join(__dirname, 'immo.db'));
+const authToken = process.env.TURSO_AUTH_TOKEN;
 
-// Tabellen erstellen
-db.exec(`
+const client = createClient(authToken ? { url, authToken } : { url });
+
+// --- Hilfsfunktionen -------------------------------------------------------
+
+// better-sqlite3 akzeptiert Parameter als Einzelargumente ODER als Array.
+// undefined ist als Bind-Wert nicht erlaubt -> null; Booleans -> 1/0.
+function normArgs(args) {
+  const list = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+  return list.map((v) => {
+    if (v === undefined) return null;
+    if (typeof v === 'boolean') return v ? 1 : 0;
+    return v;
+  });
+}
+
+// libSQL-Row -> einfaches Objekt (nur benannte Spalten, bigint -> Number),
+// damit die JSON-Ausgabe exakt wie bei better-sqlite3 aussieht.
+function toPlain(row, columns) {
+  if (!row) return undefined;
+  const o = {};
+  for (const c of columns) {
+    let v = row[c];
+    if (typeof v === 'bigint') v = Number(v);
+    o[c] = v;
+  }
+  return o;
+}
+
+function prepare(sql) {
+  return {
+    async get(...args) {
+      const rs = await client.execute({ sql, args: normArgs(args) });
+      return toPlain(rs.rows[0], rs.columns);
+    },
+    async all(...args) {
+      const rs = await client.execute({ sql, args: normArgs(args) });
+      return rs.rows.map((r) => toPlain(r, rs.columns));
+    },
+    async run(...args) {
+      const rs = await client.execute({ sql, args: normArgs(args) });
+      return {
+        changes: Number(rs.rowsAffected || 0),
+        lastInsertRowid: rs.lastInsertRowid == null ? undefined : Number(rs.lastInsertRowid),
+      };
+    },
+  };
+}
+
+// --- Schema ----------------------------------------------------------------
+
+const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS properties (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -37,6 +97,7 @@ db.exec(`
     rooms REAL,
     rent_cold REAL,
     rent_utilities REAL,
+    persons_count INTEGER DEFAULT 1,
     notes TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
@@ -104,6 +165,7 @@ db.exec(`
     related_id INTEGER,
     filename TEXT NOT NULL,
     size INTEGER,
+    content BLOB,
     notes TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
@@ -165,23 +227,7 @@ db.exec(`
     sent_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
   );
-`);
 
-// Migration: neue Spalten hinzufügen falls noch nicht vorhanden
-try { db.exec(`ALTER TABLE tenants ADD COLUMN rent_cold REAL`); } catch(e) {}
-try { db.exec(`ALTER TABLE tenants ADD COLUMN rent_utilities REAL`); } catch(e) {}
-try { db.exec(`ALTER TABLE properties ADD COLUMN distribution_key TEXT DEFAULT 'sqm'`); } catch(e) {}
-try { db.exec(`ALTER TABLE properties ADD COLUMN transfer_date TEXT`); } catch(e) {}
-try { db.exec(`ALTER TABLE properties ADD COLUMN payment_date TEXT`); } catch(e) {}
-try { db.exec(`ALTER TABLE properties ADD COLUMN land_share REAL`); } catch(e) {}
-try { db.exec(`ALTER TABLE properties ADD COLUMN building_share REAL`); } catch(e) {}
-try { db.exec(`ALTER TABLE properties ADD COLUMN total_sqm REAL`); } catch(e) {}
-try { db.exec(`ALTER TABLE properties ADD COLUMN mea TEXT`); } catch(e) {}
-try { db.exec(`ALTER TABLE units ADD COLUMN persons_count INTEGER DEFAULT 1`); } catch(e) {}
-try { db.exec(`ALTER TABLE users ADD COLUMN plan TEXT DEFAULT 'paid'`); } catch(e) {}
-
-// Nutzer & Lizenzsystem
-db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
@@ -203,25 +249,7 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
-`);
 
-// Standard-Admin anlegen bzw. Passwort aus der Umgebungsvariable erzwingen.
-// SICHERHEIT: kein hartkodiertes Passwort mehr im (öffentlichen) Repo – das echte
-// Passwort steht ausschließlich in IMMO_ADMIN_PASSWORD (Railway-Variable).
-const bcrypt = require('bcryptjs');
-const _adminPw = process.env.IMMO_ADMIN_PASSWORD || 'change-me-dev-only';
-const _adminRow = db.prepare("SELECT id FROM users WHERE role='admin'").get();
-if (!_adminRow) {
-  const hash = bcrypt.hashSync(_adminPw, 10);
-  db.prepare("INSERT INTO users (username, email, password_hash, role, license_expires_at) VALUES (?, ?, ?, 'admin', '2099-12-31')")
-    .run('admin', 'admin@immo-app.de', hash);
-} else if (process.env.IMMO_ADMIN_PASSWORD) {
-  // Rotation: gesetztes Env-Passwort beim Boot durchsetzen (überschreibt Altbestand)
-  db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(bcrypt.hashSync(_adminPw, 10), _adminRow.id);
-}
-
-// Kredite-Tabelle
-db.exec(`
   CREATE TABLE IF NOT EXISTS kredite (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     bank TEXT NOT NULL,
@@ -238,6 +266,60 @@ db.exec(`
     notizen TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
-`);
+`;
 
-module.exports = db;
+// Nachträgliche Spalten für bereits bestehende Datenbanken (idempotent).
+const MIGRATIONS = [
+  `ALTER TABLE tenants ADD COLUMN rent_cold REAL`,
+  `ALTER TABLE tenants ADD COLUMN rent_utilities REAL`,
+  `ALTER TABLE properties ADD COLUMN distribution_key TEXT DEFAULT 'sqm'`,
+  `ALTER TABLE properties ADD COLUMN transfer_date TEXT`,
+  `ALTER TABLE properties ADD COLUMN payment_date TEXT`,
+  `ALTER TABLE properties ADD COLUMN land_share REAL`,
+  `ALTER TABLE properties ADD COLUMN building_share REAL`,
+  `ALTER TABLE properties ADD COLUMN total_sqm REAL`,
+  `ALTER TABLE properties ADD COLUMN mea TEXT`,
+  `ALTER TABLE units ADD COLUMN persons_count INTEGER DEFAULT 1`,
+  `ALTER TABLE users ADD COLUMN plan TEXT DEFAULT 'paid'`,
+  `ALTER TABLE documents ADD COLUMN content BLOB`,
+];
+
+let readyPromise = null;
+
+async function init() {
+  await client.executeMultiple(SCHEMA_SQL);
+
+  for (const stmt of MIGRATIONS) {
+    try { await client.execute(stmt); } catch (e) { /* Spalte existiert bereits */ }
+  }
+
+  // Standard-Admin anlegen bzw. Passwort aus IMMO_ADMIN_PASSWORD durchsetzen.
+  // Kein hartkodiertes Passwort im Code: ist die Env-Variable nicht gesetzt, wird
+  // ein zufälliges (kryptografisch sicheres) Passwort erzeugt und einmalig geloggt.
+  const adminPw = process.env.IMMO_ADMIN_PASSWORD || crypto.randomBytes(18).toString('base64url');
+  const adminRow = (await client.execute("SELECT id FROM users WHERE role='admin'")).rows[0];
+  if (!adminRow) {
+    const hash = bcrypt.hashSync(adminPw, 10);
+    await client.execute({
+      sql: "INSERT INTO users (username, email, password_hash, role, license_expires_at) VALUES ('admin', 'admin@immo-app.de', ?, 'admin', '2099-12-31')",
+      args: [hash],
+    });
+    if (!process.env.IMMO_ADMIN_PASSWORD) {
+      console.warn('⚠️  IMMO_ADMIN_PASSWORD nicht gesetzt – zufälliges Admin-Passwort erzeugt:', adminPw);
+    }
+  } else if (process.env.IMMO_ADMIN_PASSWORD) {
+    await client.execute({
+      sql: 'UPDATE users SET password_hash=? WHERE id=?',
+      args: [bcrypt.hashSync(adminPw, 10), Number(adminRow.id)],
+    });
+  }
+}
+
+// Stellt sicher, dass Schema + Admin genau einmal initialisiert werden.
+// Wird pro Kaltstart (Vercel) bzw. beim Boot (Railway) aufgerufen.
+function ready() {
+  if (!readyPromise) readyPromise = init();
+  return readyPromise;
+}
+
+module.exports = { prepare, ready, client, raw: client };

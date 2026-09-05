@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { lease_id, month, year } = req.query;
   let query = `
     SELECT pay.*,
@@ -20,13 +20,13 @@ router.get('/', (req, res) => {
   if (lease_id) { query += ' AND pay.lease_id = ?'; params.push(lease_id); }
   if (month && year) { query += ' AND strftime("%Y-%m", pay.date) = ?'; params.push(`${year}-${month.toString().padStart(2,'0')}`); }
   query += ' ORDER BY pay.date DESC';
-  const payments = db.prepare(query).all(...params);
+  const payments = await db.prepare(query).all(...params);
   res.json(payments);
 });
 
 // Einnahmen-Übersicht
-router.get('/summary', (req, res) => {
-  const summary = db.prepare(`
+router.get('/summary', async (req, res) => {
+  const summary = await db.prepare(`
     SELECT
       strftime('%Y-%m', date) as month,
       SUM(CASE WHEN type = 'rent' THEN amount ELSE 0 END) as rent_total,
@@ -42,28 +42,28 @@ router.get('/summary', (req, res) => {
   res.json(summary);
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { lease_id, amount, type, date, description, status } = req.body;
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO payments (lease_id, amount, type, date, description, status)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(lease_id, amount, type, date, description, status || 'received');
-  const created = db.prepare('SELECT * FROM payments WHERE id = ?').get(result.lastInsertRowid);
+  const created = await db.prepare('SELECT * FROM payments WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(created);
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { lease_id, amount, type, date, description, status } = req.body;
-  db.prepare(`
+  await db.prepare(`
     UPDATE payments SET lease_id=?, amount=?, type=?, date=?, description=?, status=?
     WHERE id=?
   `).run(lease_id, amount, type, date, description, status, req.params.id);
-  const updated = db.prepare('SELECT * FROM payments WHERE id = ?').get(req.params.id);
+  const updated = await db.prepare('SELECT * FROM payments WHERE id = ?').get(req.params.id);
   res.json(updated);
 });
 
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM payments WHERE id = ?').run(req.params.id);
+router.delete('/:id', async (req, res) => {
+  await db.prepare('DELETE FROM payments WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
