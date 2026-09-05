@@ -50,8 +50,16 @@ router.get('/download/:filename', async (req, res) => {
   const doc = await db.prepare('SELECT name, content FROM documents WHERE filename = ?').get(req.params.filename);
   if (!doc || !doc.content) return res.status(404).json({ error: 'Datei nicht gefunden' });
   const buf = Buffer.from(doc.content);   // Uint8Array/ArrayBuffer -> Buffer
-  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.name)}"`);
+
+  // Dateiname auf sichere Zeichen begrenzen (verhindert Header-Injection über den
+  // ursprünglich vom Nutzer gewählten Namen).
+  const safeName = String(doc.name || 'dokument').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 100) || 'dokument';
+
+  // Inhalt strikt als Download ausliefern, nie vom Browser interpretieren lassen
+  // (kein HTML-Rendering -> keine reflektierte XSS über hochgeladene Inhalte).
   res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
   res.send(buf);
 });
 
