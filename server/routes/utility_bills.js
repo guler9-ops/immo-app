@@ -68,8 +68,8 @@ function calculateDistribution(units, costs, distributionKey) {
 }
 
 // Alle Abrechnungen
-router.get('/', (req, res) => {
-  const bills = db.prepare(`
+router.get('/', async (req, res) => {
+  const bills = await db.prepare(`
     SELECT ub.*, p.name as property_name
     FROM utility_bills ub
     JOIN properties p ON p.id = ub.property_id
@@ -79,8 +79,8 @@ router.get('/', (req, res) => {
 });
 
 // Einzelne Abrechnung mit Kostenimport + Verteilung
-router.get('/:id', (req, res) => {
-  const bill = db.prepare(`
+router.get('/:id', async (req, res) => {
+  const bill = await db.prepare(`
     SELECT ub.*, p.name as property_name, p.distribution_key
     FROM utility_bills ub
     JOIN properties p ON p.id = ub.property_id
@@ -89,7 +89,7 @@ router.get('/:id', (req, res) => {
   if (!bill) return res.status(404).json({ error: 'Nicht gefunden' });
 
   // Einheiten des Objekts (nur mit aktivem Mietvertrag für Vorauszahlung)
-  const units = db.prepare(`
+  const units = await db.prepare(`
     SELECT u.*,
       t.first_name || ' ' || t.last_name as tenant_name,
       l.rent_utilities
@@ -101,7 +101,7 @@ router.get('/:id', (req, res) => {
   `).all(bill.property_id);
 
   // Umlagefähige Kosten für diesen Zeitraum + dieses Objekt aus dem Kosten-Modul
-  const costs = db.prepare(`
+  const costs = await db.prepare(`
     SELECT * FROM costs
     WHERE (property_id = ? OR property_id IS NULL)
       AND allocatable = 1
@@ -116,16 +116,16 @@ router.get('/:id', (req, res) => {
 });
 
 // Vorschau: Kosten + Verteilung für Objekt+Zeitraum (vor dem Speichern)
-router.post('/preview', (req, res) => {
+router.post('/preview', async (req, res) => {
   const { property_id, period_from, period_to } = req.body;
   if (!property_id || !period_from || !period_to) {
     return res.status(400).json({ error: 'property_id, period_from und period_to erforderlich' });
   }
 
-  const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(property_id);
+  const property = await db.prepare('SELECT * FROM properties WHERE id = ?').get(property_id);
   if (!property) return res.status(404).json({ error: 'Objekt nicht gefunden' });
 
-  const units = db.prepare(`
+  const units = await db.prepare(`
     SELECT u.*,
       t.first_name || ' ' || t.last_name as tenant_name,
       l.rent_utilities
@@ -136,7 +136,7 @@ router.post('/preview', (req, res) => {
     ORDER BY u.name
   `).all(property_id);
 
-  const costs = db.prepare(`
+  const costs = await db.prepare(`
     SELECT * FROM costs
     WHERE (property_id = ? OR property_id IS NULL)
       AND allocatable = 1
@@ -158,31 +158,31 @@ router.post('/preview', (req, res) => {
 });
 
 // Abrechnung erstellen
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { property_id, year, period_from, period_to, status, notes } = req.body;
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO utility_bills (property_id, year, period_from, period_to, status, notes,
       total_heating, total_water, total_maintenance, total_insurance, total_other)
     VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0)
   `).run(property_id, year, period_from, period_to, status || 'draft', notes || '');
-  const created = db.prepare('SELECT * FROM utility_bills WHERE id = ?').get(result.lastInsertRowid);
+  const created = await db.prepare('SELECT * FROM utility_bills WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(created);
 });
 
 // Abrechnung aktualisieren
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { property_id, year, period_from, period_to, status, notes } = req.body;
-  db.prepare(`
+  await db.prepare(`
     UPDATE utility_bills SET property_id=?, year=?, period_from=?, period_to=?, status=?, notes=?
     WHERE id=?
   `).run(property_id, year, period_from, period_to, status, notes, req.params.id);
-  const updated = db.prepare('SELECT * FROM utility_bills WHERE id = ?').get(req.params.id);
+  const updated = await db.prepare('SELECT * FROM utility_bills WHERE id = ?').get(req.params.id);
   res.json(updated);
 });
 
 // Abrechnung löschen
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM utility_bills WHERE id = ?').run(req.params.id);
+router.delete('/:id', async (req, res) => {
+  await db.prepare('DELETE FROM utility_bills WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 

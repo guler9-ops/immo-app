@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 
-router.get('/', (req, res) => {
-  const tenants = db.prepare(`
+router.get('/', async (req, res) => {
+  const tenants = await db.prepare(`
     SELECT t.*,
       COUNT(l.id) as active_leases,
       GROUP_CONCAT(u.name, ', ') as units
@@ -16,10 +16,10 @@ router.get('/', (req, res) => {
   res.json(tenants);
 });
 
-router.get('/:id', (req, res) => {
-  const tenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(req.params.id);
+router.get('/:id', async (req, res) => {
+  const tenant = await db.prepare('SELECT * FROM tenants WHERE id = ?').get(req.params.id);
   if (!tenant) return res.status(404).json({ error: 'Nicht gefunden' });
-  const leases = db.prepare(`
+  const leases = await db.prepare(`
     SELECT l.*, u.name as unit_name, p.name as property_name
     FROM leases l
     JOIN units u ON u.id = l.unit_id
@@ -30,28 +30,28 @@ router.get('/:id', (req, res) => {
   res.json({ ...tenant, leases });
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { first_name, last_name, email, phone, birth_date, address, iban, rent_cold, rent_utilities, notes } = req.body;
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO tenants (first_name, last_name, email, phone, birth_date, address, iban, rent_cold, rent_utilities, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(first_name, last_name, email, phone, birth_date, address, iban, rent_cold, rent_utilities, notes);
-  const created = db.prepare('SELECT * FROM tenants WHERE id = ?').get(result.lastInsertRowid);
+  const created = await db.prepare('SELECT * FROM tenants WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(created);
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { first_name, last_name, email, phone, birth_date, address, iban, rent_cold, rent_utilities, notes } = req.body;
-  db.prepare(`
+  await db.prepare(`
     UPDATE tenants SET first_name=?, last_name=?, email=?, phone=?, birth_date=?, address=?, iban=?, rent_cold=?, rent_utilities=?, notes=?
     WHERE id=?
   `).run(first_name, last_name, email, phone, birth_date, address, iban, rent_cold, rent_utilities, notes, req.params.id);
-  const updated = db.prepare('SELECT * FROM tenants WHERE id = ?').get(req.params.id);
+  const updated = await db.prepare('SELECT * FROM tenants WHERE id = ?').get(req.params.id);
   res.json(updated);
 });
 
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM tenants WHERE id = ?').run(req.params.id);
+router.delete('/:id', async (req, res) => {
+  await db.prepare('DELETE FROM tenants WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 

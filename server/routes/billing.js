@@ -46,14 +46,14 @@ function issueToken(user) {
   );
 }
 
-function extendLicense(userId, months) {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+async function extendLicense(userId, months) {
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return null;
   const base = user.license_expires_at && new Date(user.license_expires_at) > new Date()
     ? new Date(user.license_expires_at) : new Date();
   base.setMonth(base.getMonth() + (parseInt(months, 10) || PERIOD_MONTHS));
   const newExpiry = base.toISOString().slice(0, 10);
-  db.prepare('UPDATE users SET license_expires_at = ?, plan = ? WHERE id = ?').run(newExpiry, 'paid', userId);
+  await db.prepare('UPDATE users SET license_expires_at = ?, plan = ? WHERE id = ?').run(newExpiry, 'paid', userId);
   return newExpiry;
 }
 
@@ -72,7 +72,7 @@ router.post('/checkout', async (req, res) => {
   const u = userFromToken(req);
   if (!u) return res.status(401).json({ error: 'Nicht angemeldet' });
   if (!STRIPE_SECRET || PRICE_CENTS <= 0) return res.status(400).json({ error: 'Zahlung noch nicht konfiguriert' });
-  const dbUser = db.prepare('SELECT id, username, email FROM users WHERE id = ?').get(u.id);
+  const dbUser = await db.prepare('SELECT id, username, email FROM users WHERE id = ?').get(u.id);
   if (!dbUser) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
   try {
     const params = {
@@ -96,10 +96,10 @@ router.post('/checkout', async (req, res) => {
 });
 
 // Nach der Zahlung: frisches Token mit aktualisierter Lizenz holen (verlängert der Webhook)
-router.post('/refresh', (req, res) => {
+router.post('/refresh', async (req, res) => {
   const u = userFromToken(req);
   if (!u) return res.status(401).json({ error: 'Nicht angemeldet' });
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(u.id);
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(u.id);
   if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
   const expired = user.role !== 'admin' && new Date(user.license_expires_at) < new Date();
   res.json({
@@ -109,8 +109,9 @@ router.post('/refresh', (req, res) => {
   });
 });
 
-// Webhook (RAW Body!) – wird in index.js VOR express.json gemountet.
-function webhookHandler(req, res) {
+// Webhook (RAW Body!) – wird in app.js VOR express.json gemountet.
+async function webhookHandler(req, res) {
+  try { await db.ready(); } catch (e) { return res.status(500).send('db not ready'); }
   const raw = req.body; // Buffer (express.raw)
   if (STRIPE_WEBHOOK_SECRET) {
     try {
@@ -131,7 +132,7 @@ function webhookHandler(req, res) {
         const userId = (obj.metadata && obj.metadata.userId) || obj.client_reference_id;
         const months = (obj.metadata && obj.metadata.months) || PERIOD_MONTHS;
         if (userId) {
-          const exp = extendLicense(parseInt(userId, 10), months);
+          const exp = await extendLicense(parseInt(userId, 10), months);
           console.log('💳 Immo: Lizenz verlängert für User', userId, '→', exp);
         }
       }
