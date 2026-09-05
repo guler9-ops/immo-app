@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
 
+// Erlaubte Ziel-Prefixe für die Zahlungs-Weiterleitung (Open-Redirect-Schutz).
+// Nur exakte, hartkodierte Stripe-HTTPS-Prefixe – kein dynamisches Ziel.
+const ALLOWED_REDIRECT_PREFIXES = ['https://checkout.stripe.com/', 'https://billing.stripe.com/']
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(() => {
@@ -112,8 +116,14 @@ export function AuthProvider({ children }) {
       }
       const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { Authorization: `Bearer ${t}` } })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
-      else alert(data.error || 'Kauf konnte nicht gestartet werden.')
+      // Sicherheit (Open-Redirect-Schutz): nur weiterleiten, wenn das Ziel mit einem
+      // fest erlaubten Stripe-Prefix beginnt. Prüfung direkt an der Weiterleitung.
+      const target = typeof data.url === 'string' ? data.url : ''
+      if (ALLOWED_REDIRECT_PREFIXES.some(prefix => target.startsWith(prefix))) {
+        window.location.href = target
+      } else {
+        alert(data.error || 'Kauf konnte nicht gestartet werden.')
+      }
     } catch (e) { alert('Server nicht erreichbar.') }
   }
 
