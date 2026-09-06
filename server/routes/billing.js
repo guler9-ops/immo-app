@@ -130,9 +130,9 @@ async function applyCheckoutEvent(event) {
   if (event.type !== 'checkout.session.completed') return;
   const obj = event.data.object || {};
   if (obj.payment_status !== 'paid' && obj.payment_status !== 'no_payment_required') return;
-  const userId = (obj.metadata && obj.metadata.userId) || obj.client_reference_id;
+  const userId = obj.metadata?.userId || obj.client_reference_id;
   if (!userId) return;
-  const months = (obj.metadata && obj.metadata.months) || PERIOD_MONTHS;
+  const months = obj.metadata?.months || PERIOD_MONTHS;
   const exp = await extendLicense(parseInt(userId, 10), months);
   console.log('💳 Immo: Lizenz verlängert für User', userId, '→', exp);
 }
