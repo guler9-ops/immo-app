@@ -41,6 +41,9 @@ Details siehe `VERCEL.md`.
   (Lizenzcodes, Demo-Passwort, Dateinamen).
 - **PR #6** – letzten Redirect-Blocker inline abgesichert + Cognitive Complexity
   des Stripe-Webhook-Handlers reduziert.
+- **PR #7** – dieses Projekt-Status-Dokument ergänzt.
+- **PR #8** – `node:`-Präfix für alle Node-Built-in-Imports konsistent gemacht
+  (`app.js`, `database.js`, `documents.js`).
 
 ## SonarCloud-Status
 - **Security: 0 offene Findungen** (alle Blocker/High behoben).
