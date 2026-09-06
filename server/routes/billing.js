@@ -6,7 +6,7 @@
 //   IMMO_PERIOD_MONTHS     – Laufzeit je Kauf in Monaten (Default 12)
 //   APP_URL                – öffentliche URL der App (für success/cancel)
 const express = require('express');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const db = require('../database');
 const { JWT_SECRET } = require('../middleware/auth');
@@ -109,34 +109,43 @@ router.post('/refresh', async (req, res) => {
   });
 });
 
+// Prüft die Stripe-Signatur des Roh-Bodys. Ohne konfiguriertes Secret wird die
+// Prüfung übersprungen (true). Ausgelagert, um den Webhook-Handler schlank zu halten.
+function isValidStripeSignature(raw, req) {
+  if (!STRIPE_WEBHOOK_SECRET) return true;
+  try {
+    const sig = req.headers['stripe-signature'] || '';
+    const parts = Object.fromEntries(sig.split(',').map(p => { const i = p.indexOf('='); return [p.slice(0, i), p.slice(i + 1)]; }));
+    const signed = parts.t + '.' + raw.toString('utf8');
+    const expected = crypto.createHmac('sha256', STRIPE_WEBHOOK_SECRET).update(signed).digest('hex');
+    const a = Buffer.from(parts.v1 || '', 'utf8'), b = Buffer.from(expected, 'utf8');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch (e) {
+    return false;
+  }
+}
+
+// Verlängert die Lizenz aus einem verifizierten checkout.session.completed-Event.
+async function applyCheckoutEvent(event) {
+  if (event.type !== 'checkout.session.completed') return;
+  const obj = event.data.object || {};
+  if (obj.payment_status !== 'paid' && obj.payment_status !== 'no_payment_required') return;
+  const userId = obj.metadata?.userId || obj.client_reference_id;
+  if (!userId) return;
+  const months = obj.metadata?.months || PERIOD_MONTHS;
+  const exp = await extendLicense(parseInt(userId, 10), months);
+  console.log('💳 Immo: Lizenz verlängert für User', userId, '→', exp);
+}
+
 // Webhook (RAW Body!) – wird in app.js VOR express.json gemountet.
 async function webhookHandler(req, res) {
   try { await db.ready(); } catch (e) { return res.status(500).send('db not ready'); }
   const raw = req.body; // Buffer (express.raw)
-  if (STRIPE_WEBHOOK_SECRET) {
-    try {
-      const sig = req.headers['stripe-signature'] || '';
-      const parts = Object.fromEntries(sig.split(',').map(p => { const i = p.indexOf('='); return [p.slice(0, i), p.slice(i + 1)]; }));
-      const signed = parts.t + '.' + raw.toString('utf8');
-      const expected = crypto.createHmac('sha256', STRIPE_WEBHOOK_SECRET).update(signed).digest('hex');
-      const a = Buffer.from(parts.v1 || '', 'utf8'), b = Buffer.from(expected, 'utf8');
-      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(400).send('bad signature');
-    } catch (e) { return res.status(400).send('bad signature'); }
-  }
+  if (!isValidStripeSignature(raw, req)) return res.status(400).send('bad signature');
   let event;
   try { event = JSON.parse(raw.toString('utf8')); } catch (e) { return res.status(400).send('bad payload'); }
   try {
-    if (event.type === 'checkout.session.completed') {
-      const obj = event.data.object || {};
-      if (obj.payment_status === 'paid' || obj.payment_status === 'no_payment_required') {
-        const userId = (obj.metadata && obj.metadata.userId) || obj.client_reference_id;
-        const months = (obj.metadata && obj.metadata.months) || PERIOD_MONTHS;
-        if (userId) {
-          const exp = await extendLicense(parseInt(userId, 10), months);
-          console.log('💳 Immo: Lizenz verlängert für User', userId, '→', exp);
-        }
-      }
-    }
+    await applyCheckoutEvent(event);
   } catch (e) { console.warn('Immo Stripe-Webhook:', e.message); }
   res.json({ received: true });
 }

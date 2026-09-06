@@ -2,10 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
 
-// Erlaubte Ziel-Prefixe für die Zahlungs-Weiterleitung (Open-Redirect-Schutz).
-// Nur exakte, hartkodierte Stripe-HTTPS-Prefixe – kein dynamisches Ziel.
-const ALLOWED_REDIRECT_PREFIXES = ['https://checkout.stripe.com/', 'https://billing.stripe.com/']
-
 // Nur wohlgeformte JWTs (drei Base64url-Segmente) in den Browser-Speicher schreiben.
 // Validierung vor dem Persistieren verhindert, dass manipulierte/ungültige Werte
 // als Token gespeichert werden (Absicherung von Daten aus Antworten/URL).
@@ -130,11 +126,11 @@ export function AuthProvider({ children }) {
       }
       const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { Authorization: `Bearer ${t}` } })
       const data = await res.json()
-      // Sicherheit (Open-Redirect-Schutz): nur weiterleiten, wenn das Ziel mit einem
-      // fest erlaubten Stripe-Prefix beginnt. Prüfung direkt an der Weiterleitung.
-      const target = typeof data.url === 'string' ? data.url : ''
-      if (ALLOWED_REDIRECT_PREFIXES.some(prefix => target.startsWith(prefix))) {
-        window.location.href = target
+      // Sicherheit (Open-Redirect-Schutz): nur weiterleiten, wenn das Ziel per HTTPS
+      // auf eine fest erlaubte Stripe-Domain zeigt. Prüfung direkt an der Weiterleitung.
+      const url = typeof data.url === 'string' ? data.url : ''
+      if (url.startsWith('https://checkout.stripe.com/') || url.startsWith('https://billing.stripe.com/')) {
+        window.location.href = url
       } else {
         alert(data.error || 'Kauf konnte nicht gestartet werden.')
       }
