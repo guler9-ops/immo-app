@@ -8,8 +8,8 @@
 // Wrapper dieselbe API nach – nur geben get()/all()/run() jetzt Promises zurück.
 // In den Routen wird daher überall `await` verwendet.
 
-const path = require('path');
-const crypto = require('crypto');
+const path = require('node:path');
+const crypto = require('node:crypto');
 const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 
