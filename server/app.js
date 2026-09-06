@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
+const path = require('node:path');
+const fs = require('node:fs');
 
 const db = require('./database');
 const { requireAuth } = require('./middleware/auth');
