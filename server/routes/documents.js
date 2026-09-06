@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const db = require('../database');
 
 // Dateien werden im Speicher gepuffert und als BLOB in der Datenbank abgelegt.
