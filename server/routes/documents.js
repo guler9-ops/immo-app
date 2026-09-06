@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const db = require('../database');
 
 // Dateien werden im Speicher gepuffert und als BLOB in der Datenbank abgelegt.
@@ -27,8 +28,7 @@ router.get('/', async (req, res) => {
 router.post('/upload', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Keine Datei' });
   const { name, category, related_type, related_id, notes } = req.body;
-  const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-  const filename = unique + path.extname(req.file.originalname);
+  const filename = crypto.randomUUID() + path.extname(req.file.originalname);
   const result = await db.prepare(`
     INSERT INTO documents (name, category, related_type, related_id, filename, size, content, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)

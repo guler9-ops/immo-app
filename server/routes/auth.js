@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('../database');
 const { requireAuth, JWT_SECRET } = require('../middleware/auth');
 
@@ -89,7 +90,7 @@ router.post('/demo', async (req, res) => {
   const expires = new Date();
   expires.setDate(expires.getDate() + 7);
   const license_expires_at = expires.toISOString().slice(0, 10);
-  const hash = bcrypt.hashSync(Math.random().toString(36).slice(2), 8);
+  const hash = bcrypt.hashSync(crypto.randomBytes(24).toString('base64url'), 8);
 
   const result = await db.prepare(
     "INSERT INTO users (username, email, password_hash, role, plan, license_expires_at) VALUES (?, ?, ?, 'customer', 'demo', ?)"
