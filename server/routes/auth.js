@@ -58,7 +58,7 @@ router.post('/activate', requireAuth, async (req, res) => {
   const newExpiry = base.toISOString().slice(0, 10);
 
   await db.prepare('UPDATE users SET license_expires_at = ? WHERE id = ?').run(newExpiry, user.id);
-  await db.prepare('UPDATE license_codes SET used = 1, used_at = datetime("now"), user_id = ? WHERE id = ?').run(user.id, lc.id);
+  await db.prepare("UPDATE license_codes SET used = 1, used_at = datetime('now'), user_id = ? WHERE id = ?").run(user.id, lc.id);
 
   const updated = await db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
   const token = makeToken(updated);
@@ -71,7 +71,7 @@ router.post('/demo', async (req, res) => {
   if (!email || !email.includes('@')) return res.status(400).json({ error: 'Gültige E-Mail erforderlich' });
 
   // Prüfen ob bereits Demo mit dieser E-Mail
-  const existing = await db.prepare('SELECT * FROM users WHERE email = ? AND plan = "demo"').get(email);
+  const existing = await db.prepare("SELECT * FROM users WHERE email = ? AND plan = 'demo'").get(email);
   if (existing) {
     // Einfach einloggen
     const token = makeToken(existing);

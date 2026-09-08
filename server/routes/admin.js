@@ -60,7 +60,7 @@ router.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
 
 // Kunden löschen
 router.delete('/users/:id', requireAuth, requireAdmin, async (req, res) => {
-  await db.prepare('DELETE FROM users WHERE id = ? AND role != "admin"').run(req.params.id);
+  await db.prepare("DELETE FROM users WHERE id = ? AND role != 'admin'").run(req.params.id);
   res.json({ success: true });
 });
 

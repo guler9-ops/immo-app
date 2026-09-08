@@ -6,6 +6,10 @@ const fs = require('node:fs');
 const db = require('./database');
 const { requireAuth } = require('./middleware/auth');
 
+// Sicherheitsnetz: ein unerwarteter Fehler in einem async-Handler soll den Server
+// nicht beenden (Node bricht bei unbehandelten Promise-Rejections sonst ab).
+process.on('unhandledRejection', (err) => console.error('Unhandled Rejection:', err));
+
 const app = express();
 
 // CORS bewusst NICHT permissiv (kein Wildcard '*'): Frontend und API teilen sich
