@@ -287,6 +287,11 @@ const MIGRATIONS = [
 let readyPromise = null;
 
 async function init() {
+  // better-sqlite3 hatte Fremdschlüssel-Prüfung standardmäßig AUS, libSQL/Turso hat
+  // sie AN. Um das ursprüngliche Verhalten der App exakt beizubehalten (Löschen ohne
+  // FK-Fehler, keine Kaskaden), wird sie hier deaktiviert.
+  try { await client.execute('PRAGMA foreign_keys = OFF'); } catch (e) { /* nicht unterstützt */ }
+
   await client.executeMultiple(SCHEMA_SQL);
 
   for (const stmt of MIGRATIONS) {

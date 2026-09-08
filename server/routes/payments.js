@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
   `;
   const params = [];
   if (lease_id) { query += ' AND pay.lease_id = ?'; params.push(lease_id); }
-  if (month && year) { query += ' AND strftime("%Y-%m", pay.date) = ?'; params.push(`${year}-${month.toString().padStart(2,'0')}`); }
+  if (month && year) { query += " AND strftime('%Y-%m', pay.date) = ?"; params.push(`${year}-${month.toString().padStart(2,'0')}`); }
   query += ' ORDER BY pay.date DESC';
   const payments = await db.prepare(query).all(...params);
   res.json(payments);
