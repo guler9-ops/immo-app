@@ -46,11 +46,18 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 // (keine Werte/Geheimnisse). Nach der Fehlersuche wieder entfernen.
 app.get('/api/_status', async (req, res) => {
   let adminExists = false, userCount = null, adminRotated = null, dbError = null;
+  let pwMatchesAdmin = null, adminUsername = null;
   try {
-    const a = await db.prepare("SELECT COUNT(*) AS c FROM users WHERE role='admin'").get();
-    adminExists = (a?.c || 0) > 0;
+    const admin = await db.prepare("SELECT username, password_hash FROM users WHERE role='admin'").get();
+    adminExists = !!admin;
+    adminUsername = admin ? admin.username : null;
     userCount = (await db.prepare('SELECT COUNT(*) AS c FROM users').get()).c;
     adminRotated = adminExists && !!process.env.IMMO_ADMIN_PASSWORD;
+    // Optional: ?pw=... prüft, OB dieses Passwort zum Admin passt (kein Wert wird preisgegeben).
+    if (admin && typeof req.query.pw === 'string' && req.query.pw.length > 0) {
+      const bcrypt = require('bcryptjs');
+      pwMatchesAdmin = bcrypt.compareSync(req.query.pw, admin.password_hash);
+    }
   } catch (e) { dbError = e.message; }
   res.json({
     env: {
@@ -60,8 +67,10 @@ app.get('/api/_status', async (req, res) => {
       JWT_SECRET: !!process.env.JWT_SECRET,
     },
     adminExists,
+    adminUsername,
     userCount,
     adminPasswordEnforcedOnBoot: adminRotated,
+    pwMatchesAdmin,
     dbError,
   });
 });
