@@ -41,6 +41,30 @@ app.use('/api', async (req, res, next) => {
 
 // Öffentliche Routen (kein Login nötig)
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+// Temporärer Diagnose-Endpunkt: zeigt nur, OB Variablen/Admin vorhanden sind
+// (keine Werte/Geheimnisse). Nach der Fehlersuche wieder entfernen.
+app.get('/api/_status', async (req, res) => {
+  let adminExists = false, userCount = null, adminRotated = null, dbError = null;
+  try {
+    const a = await db.prepare("SELECT COUNT(*) AS c FROM users WHERE role='admin'").get();
+    adminExists = (a?.c || 0) > 0;
+    userCount = (await db.prepare('SELECT COUNT(*) AS c FROM users').get()).c;
+    adminRotated = adminExists && !!process.env.IMMO_ADMIN_PASSWORD;
+  } catch (e) { dbError = e.message; }
+  res.json({
+    env: {
+      IMMO_ADMIN_PASSWORD: !!process.env.IMMO_ADMIN_PASSWORD,
+      TURSO_DATABASE_URL: !!process.env.TURSO_DATABASE_URL,
+      TURSO_AUTH_TOKEN: !!process.env.TURSO_AUTH_TOKEN,
+      JWT_SECRET: !!process.env.JWT_SECRET,
+    },
+    adminExists,
+    userCount,
+    adminPasswordEnforcedOnBoot: adminRotated,
+    dbError,
+  });
+});
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/billing', billing.router);   // /config, /checkout, /refresh (Auth intern, ohne Lizenz-Sperre)
 
